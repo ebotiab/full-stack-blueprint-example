@@ -1,0 +1,15 @@
+# Changes here will be overwritten by Copier; do not edit by hand. Update with `copier update`.
+_commit: v0.2.0
+_src_path: gh:ebotiab/full-stack-blueprint
+api_deploy: render
+api_public_url: https://my-project-api.onrender.com
+description: A FastAPI API with a React visor.
+env_prefix: MY_PROJECT_
+github_repo: ebotiab/full-stack-blueprint-example
+package_name: my_project
+postgres_port: 5434
+project_name: My Project
+project_slug: my-project
+type_checker: pyright
+with_database: true
+with_frontend: true

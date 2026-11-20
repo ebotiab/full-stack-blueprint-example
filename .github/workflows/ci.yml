@@ -1,0 +1,172 @@
+# Checks on every pull request and every push to main.
+#
+# The jobs run the same Makefile targets as a local `make check`, so the CI and your machine never
+# disagree about what "passing" means. Protect `main` with the required checks `Backend` and
+# `Frontend`: they are the two final jobs, which pass when their half passed or was skipped
+# because the pull request does not touch it (.github/scripts/what-changed.sh).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      backend: ${{ steps.paths.outputs.backend }}
+      frontend: ${{ steps.paths.outputs.frontend }}
+    steps:
+      # Two commits: in a pull request HEAD is the merge with the base, and the diff with its first
+      # parent is exactly what the pull request changes.
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Paths changed by the pull request
+        id: paths
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" != "pull_request" ] || ! git rev-parse --verify --quiet HEAD^2 >/dev/null; then
+            printf 'backend=true\nfrontend=true\n' | tee -a "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git diff --name-only --no-renames HEAD^1 HEAD | tee "$RUNNER_TEMP/paths.txt"
+          .github/scripts/what-changed.sh < "$RUNNER_TEMP/paths.txt" | tee -a "$GITHUB_OUTPUT"
+
+  backend-checks:
+    name: Backend · format, lint, types, contract, tests
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        # No password: the database lives only for this job and is not reachable from outside.
+        env:
+          POSTGRES_USER: my_project
+          POSTGRES_DB: my_project_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U my_project"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      # `uv run` fails instead of updating uv.lock when it is out of date.
+      UV_LOCKED: "1"
+      TEST_DATABASE_URL: postgresql://my_project@localhost:5432/my_project_test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: "3.14"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - name: Dependencies (uv sync --locked)
+        working-directory: backend
+        run: uv sync --locked
+      - name: make check-backend
+        run: make check-backend
+
+  frontend-checks:
+    name: Frontend · format, lint, types, contract, tests, build, Playwright
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Dependencies (npm ci)
+        run: npm ci
+      - name: Installed Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright's Chromium
+        id: playwright-cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      # Only the browser: the runner image already has Chromium's system libraries.
+      - name: Install Chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+      - name: make check-frontend
+        working-directory: .
+        run: make check-frontend
+      - name: Keep traces and screenshots of failed Playwright tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-test-results
+          path: frontend/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The required checks. They always run (`always()`): a skipped required check would count as
+  # passed. Each job they depend on must have succeeded, or have been skipped because
+  # `What changed` said the pull request does not touch that half.
+  backend:
+    name: Backend
+    needs: [changes, backend-checks]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Result of the backend checks
+        shell: bash
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          APPLIES: ${{ needs.changes.outputs.backend }}
+          RESULTS: ${{ needs.backend-checks.result }}
+        run: &result |
+          echo "What changed: $CHANGES · applies: ${APPLIES:-unknown} · results: $RESULTS"
+          [ "$CHANGES" = "success" ] || { echo "::error::Could not tell what the pull request changes."; exit 1; }
+          case "$APPLIES" in
+            true) expected=success ;;
+            false) expected=skipped ;;
+            *) echo "::error::'What changed' did not say whether this half applies."; exit 1 ;;
+          esac
+          for result in $RESULTS; do
+            [ "$result" = "$expected" ] || { echo "::error::Expected $expected and a job ended $result."; exit 1; }
+          done
+          echo "OK."
+
+  frontend:
+    name: Frontend
+    needs: [changes, frontend-checks]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Result of the visor checks
+        shell: bash
+        env:
+          CHANGES: ${{ needs.changes.result }}
+          APPLIES: ${{ needs.changes.outputs.frontend }}
+          RESULTS: ${{ needs.frontend-checks.result }}
+        run: *result

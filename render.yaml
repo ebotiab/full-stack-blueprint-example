@@ -1,0 +1,24 @@
+# Render Blueprint for the My Project API (https://render.com/docs/blueprint-spec).
+# Create it once: Render dashboard → New → Blueprint → this repository. Render then keeps the
+# service in sync with this file. Manual steps (database, secrets) are in the README, "Deploy".
+services:
+  - type: web
+    name: my-project-api
+    runtime: docker
+    # Only changes under backend/ redeploy the API.
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    healthCheckPath: /api/healthz
+    # Deploy a commit of main only after its GitHub checks (the CI) pass.
+    autoDeployTrigger: checksPass
+    envVars:
+      # Neon connection string (direct, not -pooler; region aws-eu-central-1). Set it in the dashboard.
+      - key: DATABASE_URL
+        sync: false
+      - key: MY_PROJECT_ENVIRONMENT
+        value: production
+      # Logfire write token of the project. Without it the API runs but sends no traces.
+      - key: LOGFIRE_TOKEN
+        sync: false

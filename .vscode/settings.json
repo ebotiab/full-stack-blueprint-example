@@ -1,0 +1,23 @@
+{
+  // Python: the interpreter is backend/.venv (make setup) and Ruff formats and sorts imports.
+  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.analysis.extraPaths": ["backend/src"],
+  "python.analysis.typeCheckingMode": "standard",
+  "python.testing.pytestEnabled": true,
+  "python.testing.cwd": "${workspaceFolder}/backend",
+  "python.testing.pytestArgs": ["tests"],
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  },
+  "ruff.importStrategy": "fromEnvironment",
+  // The visor is formatted by oxfmt (frontend/.oxfmtrc.json) and linted by oxlint.
+  "oxc.fmt.configPath": "frontend/.oxfmtrc.json",
+  "[typescript]": { "editor.defaultFormatter": "oxc.oxc-vscode", "editor.formatOnSave": true },
+  "[typescriptreact]": { "editor.defaultFormatter": "oxc.oxc-vscode", "editor.formatOnSave": true },
+  "[css]": { "editor.defaultFormatter": "oxc.oxc-vscode", "editor.formatOnSave": true }
+}

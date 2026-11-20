@@ -1,0 +1,66 @@
+[project]
+name = "my-project"
+version = "0.1.0"
+description = "A FastAPI API with a React visor."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "asyncpg>=0.32.0",
+    "fastapi>=0.162.5",
+    "httpx>=0.28.1",
+    "logfire[asyncpg,fastapi,httpx]>=5.6.0",
+    "pydantic-settings>=2.16.2",
+    "typer>=0.29.1",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+my-project = "my_project.cli:app"
+
+# Entry point for `fastapi dev`/`fastapi run` and for FastAPI Cloud.
+[tool.fastapi]
+entrypoint = "my_project.api.main:app"
+
+[build-system]
+requires = ["uv_build>=0.11.19,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "asgi-lifespan>=2.1.0",
+    "pyright>=1.1.414",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "ruff>=0.17.5",
+]
+
+# Only releases that are at least 7 days old: a compromised release is usually found and withdrawn
+# within days. Dependabot waits as long (.github/dependabot.yml). Needs uv 0.9.17 or newer. For an
+# urgent fix, exempt one package: exclude-newer-package = { <name> = false }.
+[tool.uv]
+exclude-newer = "7 days"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+# Logfire's pytest plugin only activates with CI=true and a LOGFIRE_TOKEN; tests never send data.
+addopts = "--no-logfire"
+filterwarnings = ["error::DeprecationWarning:my_project.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+# ASYNC: blocking calls inside async code. FAST: FastAPI rules. RUF: ruff's own rules.
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "FAST", "RUF"]
+ignore = ["E501"]
+
+# Same level as Pylance in VS Code ("standard"): what passes here shows no warnings in the editor.
+[tool.pyright]
+pythonVersion = "3.14"
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "standard"
+include = ["src", "tests"]

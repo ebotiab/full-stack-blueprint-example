@@ -1,0 +1,53 @@
+# Dependency updates. Every Monday Dependabot opens at most one pull request per ecosystem with
+# all minor and patch updates together, and one per major update (those tend to break something
+# and deserve their own review). They go through the CI like any pull request; none merges itself.
+#
+# Cooldown: Dependabot only proposes releases that are at least 7 days old. A compromised release
+# is usually found and withdrawn within days; security updates do not wait. The same window
+# applies wherever dependencies are resolved, so every update Dependabot opens can be locked:
+# uv (`exclude-newer` in backend/pyproject.toml) and npm (`min-release-age` in frontend/.npmrc).
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # oxfmt is pinned to an exact version on purpose (beta: formatting may change between
+      # releases). Upgrade it by hand together with `make fmt`.
+      - dependency-name: oxfmt
+      # @types/node follows the Node major in use (24), not its own releases.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

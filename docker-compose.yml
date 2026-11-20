@@ -1,0 +1,25 @@
+# Local PostgreSQL for development and tests: `make db-up` (or `docker compose up -d --wait`).
+# Production uses Neon (README, "Deploy").
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: my-project-postgres
+    environment:
+      POSTGRES_USER: my_project
+      POSTGRES_PASSWORD: my_project
+      POSTGRES_DB: my_project
+    ports:
+      - "5434:5432"
+    # From PostgreSQL 18 on, the volume goes on /var/lib/postgresql (the data is in 18/docker inside
+    # it). One volume per major version: PostgreSQL does not start on another major's data, so a new
+    # major starts empty and `make setup` migrates it. `docker volume ls` lists the old ones.
+    volumes:
+      - postgres18:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U my_project -d my_project"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres18:
