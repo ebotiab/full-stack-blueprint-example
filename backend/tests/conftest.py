@@ -7,11 +7,11 @@ import asyncpg
 import pytest
 
 from my_project.db.pool import connect
-from my_project.settings import get_settings
+from my_project.settings import PREFIX, get_settings
 
 #: Integration tests run against a real PostgreSQL database: `make test` and the CI set this
 #: variable to a throwaway database (`my_project_test`). Without it they are skipped.
-TEST_DATABASE_ENV = "MY_PROJECT_TEST_DATABASE_URL"
+TEST_DATABASE_ENV = f"{PREFIX}TEST_DATABASE_URL"
 
 
 def test_database_url() -> str | None:
@@ -44,8 +44,8 @@ async def db_conn(db_url: str) -> AsyncIterator[asyncpg.Connection]:
 @pytest.fixture
 def app_settings(db_url: str, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     """Point the app at the test database, migrating it at start-up, for the duration of a test."""
-    monkeypatch.setenv("MY_PROJECT_DATABASE_URL", db_url)
-    monkeypatch.setenv("MY_PROJECT_MIGRATE_ON_START", "true")
+    monkeypatch.setenv(f"{PREFIX}DATABASE_URL", db_url)
+    monkeypatch.setenv(f"{PREFIX}MIGRATE_ON_START", "true")
     get_settings.cache_clear()
     yield
     get_settings.cache_clear()

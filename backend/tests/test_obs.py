@@ -8,6 +8,7 @@ from typing import Any
 
 from my_project import obs
 from my_project.observability import deployed_commit
+from my_project.settings import PREFIX
 
 
 class FakeClient:
@@ -75,7 +76,7 @@ def test_deployed_commit_reads_our_variable_then_the_platforms(tmp_path: Path) -
     missing = tmp_path / "DEPLOYED_COMMIT"
     assert deployed_commit({}, missing) is None
     assert deployed_commit({"RAILWAY_GIT_COMMIT_SHA": "r1"}, missing) == "r1"
-    both = {"MY_PROJECT_COMMIT": "own", "RENDER_GIT_COMMIT": "r2"}
+    both = {f"{PREFIX}COMMIT": "own", "RENDER_GIT_COMMIT": "r2"}
     assert deployed_commit(both, missing) == "own"
     missing.write_text("f1\n", encoding="utf-8")
     assert deployed_commit({}, missing) == "f1"

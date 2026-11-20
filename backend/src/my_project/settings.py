@@ -9,8 +9,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 #: Prefix of this project's environment variables.
 PREFIX = "MY_PROJECT_"
-#: The docker-compose PostgreSQL (make db-up).
-LOCAL_DATABASE_URL = "postgresql://my_project:my_project@localhost:5434/my_project"
+#: User, password and database name of the docker-compose PostgreSQL (make db-up).
+_LOCAL_DB = "my_project"
+#: The docker-compose PostgreSQL.
+LOCAL_DATABASE_URL = f"postgresql://{_LOCAL_DB}:{_LOCAL_DB}@localhost:5434/{_LOCAL_DB}"
 
 
 class Settings(BaseSettings):
