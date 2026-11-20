@@ -7,8 +7,6 @@ The service version is the deployed commit, so traces answer "which commit runs 
 and what failed since it arrived" (`my-project obs status`).
 """
 
-from __future__ import annotations
-
 import os
 from collections.abc import Mapping
 from pathlib import Path

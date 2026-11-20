@@ -16,8 +16,16 @@ This is the order.
 4. **Commit and push.** One-sentence message describing the result. Lockfiles included when dependencies changed.
 5. **Pull request.** `gh pr create` with a description that says what changes, why, what to look at
    in review and which checks passed. If the task closes an issue, add `Closes #N`.
-6. **Auto-merge.** When nothing is left to decide: `gh pr merge --squash --auto`. If the CI fails,
-   read the failing job (`gh run view --log-failed`), fix, push; the mark stays.
+6. **Merge on green.** When nothing is left to decide. `--auto` waits for the CI only if `main`
+   requires its checks, and merging is deploying, so look first:
+   `gh api 'repos/{owner}/{repo}/branches/main' --jq '.protection.required_status_checks.contexts'`
+   - It lists `Backend` and `Frontend`: `gh pr merge --squash --auto`. If the CI fails, read the
+     failing job (`gh run view --log-failed`), fix, push; the mark stays. If it answers "Pull
+     request is in clean status", the CI already passed and there is nothing to wait for:
+     `gh pr merge --squash`.
+   - It does not (`main` is not protected yet): wait for the CI yourself,
+     `gh pr checks --watch --fail-fast && gh pr merge --squash` (if it says no checks are reported
+     yet, run it again in a moment), and tell the user to protect `main` (README, "Deploy").
 7. **After the merge.** Update your local `main` (`git checkout main && git pull`). If the visor changed, open the production URL and look at the change.
 8. **Production.** If `backend/` changed:
    `cd backend && uv run my-project obs status --commit <merge commit sha> --wait 15`.

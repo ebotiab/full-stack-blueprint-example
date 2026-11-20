@@ -1,7 +1,5 @@
 """The My Project API. Every route lives under /api, so the visor and the API can share a domain."""
 
-from __future__ import annotations
-
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 

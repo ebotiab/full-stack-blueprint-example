@@ -1,7 +1,5 @@
 """`my-project` command line: database migrations, OpenAPI schema and production status."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 import time

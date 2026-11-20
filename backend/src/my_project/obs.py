@@ -5,8 +5,6 @@ errors happened since it arrived. Read-only: it uses a *read* token of the Logfi
 outside the repository (the LOGFIRE_READ_TOKEN variable or the file ~/.config/my-project/logfire-read-token).
 """
 
-from __future__ import annotations
-
 import datetime as dt
 import os
 import re
@@ -17,7 +15,7 @@ from typing import Any, Protocol
 
 PROJECT = "my-project"
 SERVICE = f"{PROJECT}-api"
-TOKEN_ENV = "LOGFIRE_READ_TOKEN"
+TOKEN_ENV = "LOGFIRE_READ_TOKEN"  # noqa: S105
 TOKEN_FILE = Path.home() / ".config" / PROJECT / "logfire-read-token"
 #: From this level on a record is an error (Logfire's numeric levels: 17 = error).
 ERROR_LEVEL = 17

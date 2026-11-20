@@ -1,7 +1,5 @@
 """Settings read from the environment (and from backend/.env). Everything works locally without credentials."""
 
-from __future__ import annotations
-
 from functools import lru_cache
 
 from pydantic import AliasChoices, Field

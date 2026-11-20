@@ -1,7 +1,5 @@
 """PostgreSQL connections with asyncpg (no ORM: SQL lives next to the code that runs it)."""
 
-from __future__ import annotations
-
 import asyncio
 import json
 from collections.abc import AsyncGenerator

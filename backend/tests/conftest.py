@@ -1,7 +1,8 @@
-from __future__ import annotations
+"""Fixtures shared by the tests."""
 
 import os
 from collections.abc import AsyncIterator, Iterator
+from urllib.parse import urlsplit
 
 import asyncpg
 import pytest
@@ -18,21 +19,19 @@ def test_database_url() -> str | None:
     return os.environ.get(TEST_DATABASE_ENV)
 
 
-requires_db = pytest.mark.skipif(
-    test_database_url() is None,
-    reason=f"set {TEST_DATABASE_ENV} to run the PostgreSQL integration tests (make test does)",
-)
-
-
 @pytest.fixture
-async def db_url() -> AsyncIterator[str]:
+async def db_url() -> str:
     """The test database, emptied before each test."""
     url = test_database_url()
     if url is None:
         pytest.skip(f"{TEST_DATABASE_ENV} is not set")
+    # This fixture empties the database: it refuses one that is not a throwaway database.
+    name = urlsplit(url).path.rpartition("/")[2]
+    if not name.endswith("_test"):
+        pytest.fail(f"{TEST_DATABASE_ENV} must name a database ending in _test, not {name!r}")
     async with connect(url) as conn:
         await conn.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
-    yield url
+    return url
 
 
 @pytest.fixture

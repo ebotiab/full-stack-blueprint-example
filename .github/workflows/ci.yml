@@ -4,6 +4,9 @@
 # disagree about what "passing" means. Protect `main` with the required checks `Backend` and
 # `Frontend`: they are the two final jobs, which pass when their half passed or was skipped
 # because the pull request does not touch it (.github/scripts/what-changed.sh).
+#
+# Actions are pinned to a commit, with the release in a comment: a tag can be moved to other code,
+# a commit cannot. Dependabot updates both (.github/dependabot.yml).
 name: CI
 
 on:
@@ -30,7 +33,7 @@ jobs:
     steps:
       # Two commits: in a pull request HEAD is the merge with the base, and the diff with its first
       # parent is exactly what the pull request changes.
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 2
       - name: Paths changed by the pull request
@@ -54,7 +57,8 @@ jobs:
     timeout-minutes: 15
     services:
       postgres:
-        image: postgres:18
+        # The same image as the local database (docker-compose.yml).
+        image: postgres:18-alpine
         # No password: the database lives only for this job and is not reachable from outside.
         env:
           POSTGRES_USER: my_project
@@ -72,8 +76,8 @@ jobs:
       UV_LOCKED: "1"
       TEST_DATABASE_URL: postgresql://my_project@localhost:5432/my_project_test
     steps:
-      - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.3
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: "3.14"
           enable-cache: true
@@ -94,10 +98,10 @@ jobs:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - name: Dependencies (npm ci)
@@ -107,7 +111,7 @@ jobs:
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
       - name: Cache Playwright's Chromium
         id: playwright-cache
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
@@ -120,7 +124,7 @@ jobs:
         run: make check-frontend
       - name: Keep traces and screenshots of failed Playwright tests
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-test-results
           path: frontend/test-results
