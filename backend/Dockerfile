@@ -11,6 +11,10 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked --no-install-proj
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv uv sync --locked
 
+# The API runs as an unprivileged user: at run time it only reads /app.
+RUN useradd --system --no-create-home --uid 10001 app
+USER app
+
 ENV PATH="/app/.venv/bin:$PATH" PORT=8000
 EXPOSE 8000
 # Pending migrations run when the API starts (MY_PROJECT_MIGRATE_ON_START, on by default for

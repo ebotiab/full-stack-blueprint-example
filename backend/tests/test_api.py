@@ -1,7 +1,5 @@
 """API tests that need no database: the app is called in-process, without its lifespan."""
 
-from __future__ import annotations
-
 import httpx
 
 from my_project.api.main import create_app

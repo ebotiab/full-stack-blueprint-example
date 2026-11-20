@@ -9,7 +9,7 @@ answers and is only changed by `copier update` (see "Template updates").
 
 ## Where things are
 
-- `backend/`: the API. Python 3.14 with uv, FastAPI, asyncpg (no ORM), pydantic-settings, Typer, Logfire.
+- `backend/`: the API. Python 3.14 (`.python-version`) with uv, FastAPI, asyncpg (no ORM), pydantic-settings, Typer, Logfire.
   - `src/my_project/api/`: the app (`main.py`) and its routes (`routes.py`). Every route is under `/api`.
   - `src/my_project/db/`: the connection pool (`pool.py`), the migration runner (`migrate.py`) and the SQL migrations (`migrations/NNNN_name.sql`).
   - `src/my_project/settings.py`: configuration from environment variables prefixed `MY_PROJECT_`; defaults work locally.
@@ -17,7 +17,7 @@ answers and is only changed by `copier update` (see "Template updates").
   - `src/my_project/cli.py`: the `my-project` command (`migrate`, `openapi`, `obs status`).
   - `openapi.json`: the API contract, generated (`make types`). Committed.
   - `tests/`: pytest; the integration tests use a real PostgreSQL database.
-- `frontend/`: the visor. Vite, React, TypeScript, oxlint, oxfmt, Vitest, Playwright.
+- `frontend/`: the visor. Vite, React, TypeScript, oxlint (with type-aware rules), oxfmt, Vitest, Playwright.
   - `src/api/client.ts`: the typed API client (`openapi-fetch`). `src/api/schema.d.ts` is generated from `backend/openapi.json`: never edit it.
   - `src/**/*.test.ts`: unit tests (Vitest). `e2e/`: browser tests (Playwright); they answer `/api` themselves with `page.route`.
 - `Makefile`: one target per task (below). `scripts/`: what the Makefile runs (`doctor.sh`, `steps.sh`).
@@ -60,7 +60,9 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
 - **Merge on green.** When the pull request is complete (final description, nothing left to
   decide), mark it with `gh pr merge --squash --auto`: GitHub merges it as soon as the required
   checks `Backend` and `Frontend` pass, and never if they fail. If the CI fails, fix and push; the
-  mark stays.
+  mark stays. If the checks already passed, `--auto` refuses ("clean status"): merge with
+  `gh pr merge --squash`. This holds only while `main` requires those checks (README, "Deploy"): the
+  `ship-a-change` skill looks before marking and, on an unprotected `main`, waits for the CI itself.
 - **Merging is deploying.** A push to `main` deploys the API (Render waits for the CI) and the visor (Vercel). Nothing is deployed by hand.
 - **Check production after merging.** A task that touches `backend/` ends when production runs the
   new commit without errors: `cd backend && uv run my-project obs status --commit <merge commit> --wait 15`
@@ -70,11 +72,13 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
 - **Tests.** Every new rule or route gets a pytest test; every visible behaviour of the visor a
   Playwright test (mocking `/api`); plain logic a unit test next to it.
 - **SQL, no ORM.** Queries are plain SQL run with asyncpg, with `$1` parameters (never string
-  formatting), next to the code that uses them; rows become Pydantic models right there. Write the
+  formatting: ruff's `S608` rejects it), next to the code that uses them; rows become Pydantic models right there. Write the
   SQL yourself and do not add an ORM or a query builder: explicit SQL is easier to review and test.
 - **Migrations.** A schema change is a new file `backend/src/my_project/db/migrations/NNNN_short_name.sql`
   (next number). Never edit an applied migration: the runner stores checksums and refuses changed files.
   The runner is idempotent and takes a PostgreSQL advisory lock, so concurrent starts are safe.
+  Each file runs in one transaction: a statement PostgreSQL refuses inside one (`CREATE INDEX
+  CONCURRENTLY`) fails; the docstring of `db/migrate.py` says what to do instead.
 - **Configuration.** New settings go in `settings.py` with a local default and the `MY_PROJECT_` prefix,
   and in `backend/.env.example`. Secrets never enter the repository; everything runs locally without credentials.
 - **No repeated work.** Read what the task needs, not every file. Run long commands (`make check`,

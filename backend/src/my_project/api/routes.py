@@ -1,7 +1,5 @@
 """Example routes. Replace /api/messages with your own; keep /api/healthz for the platform."""
 
-from __future__ import annotations
-
 import datetime as dt
 
 from fastapi import APIRouter

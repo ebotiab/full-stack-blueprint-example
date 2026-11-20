@@ -11,7 +11,7 @@ and the conventions; this README covers the same ground for people.
 
 ## Start from scratch
 
-You need [uv](https://docs.astral.sh/uv/), [Node 24](https://nodejs.org) and [Docker](https://docs.docker.com/get-docker/). Then:
+You need [uv](https://docs.astral.sh/uv/), [Node 26](https://nodejs.org) and [Docker](https://docs.docker.com/get-docker/). Then:
 
 ```bash
 make doctor   # checks the tools and says how to fix what is missing
@@ -46,7 +46,8 @@ None of them is needed to develop locally.
 **Logfire.** Create a project at https://logfire.pydantic.dev. Create a **write token** (Settings →
 Write tokens) for the API's `LOGFIRE_TOKEN`, and a **read token** (Settings → Read tokens) for
 `my-project obs status`: save it in `~/.config/my-project/logfire-read-token` or export it as `LOGFIRE_READ_TOKEN`. For browser errors,
-create a frontend application in the project and use its restricted token as `VITE_LOGFIRE_TOKEN` in Vercel.
+create a frontend application in the project (Frontend → Applications) and set the two values it generates in Vercel:
+its restricted token as `VITE_LOGFIRE_TOKEN` and the URL of the project's region as `VITE_LOGFIRE_BASE_URL`.
 
 **API (Render).** Dashboard → New → Blueprint → this repository. Render reads `render.yaml`
 (Docker, Frankfurt, free plan, health check `/api/healthz`) and asks for the secrets: `DATABASE_URL`

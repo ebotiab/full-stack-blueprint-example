@@ -40,12 +40,16 @@ dev = [
 [tool.uv]
 exclude-newer = "7 days"
 
-[tool.pytest.ini_options]
+# pytest 9's own table (typed values, not ini strings).
+[tool.pytest]
+# Unknown markers and configuration keys, an xfail that passes and duplicate parametrize ids are
+# errors, not warnings.
+strict = true
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 # Logfire's pytest plugin only activates with CI=true and a LOGFIRE_TOKEN; tests never send data.
-addopts = "--no-logfire"
+addopts = ["--no-logfire"]
 filterwarnings = ["error::DeprecationWarning:my_project.*"]
 
 [tool.ruff]
@@ -54,8 +58,20 @@ target-version = "py314"
 
 [tool.ruff.lint]
 # ASYNC: blocking calls inside async code. FAST: FastAPI rules. RUF: ruff's own rules.
-select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC", "FAST", "RUF"]
+# S: security, among them SQL built with string formatting (S608). PT: pytest style. DTZ: dates
+# without a time zone. C4, PERF: comprehensions and loops. PTH: pathlib. T20: stray print().
+select = [
+    "E", "F", "I", "UP", "B", "SIM", "ASYNC", "FAST", "RUF",
+    "S", "PT", "DTZ", "C4", "PERF", "PTH", "T20",
+]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests assert.
+"tests/*" = ["S101"]
+# Logfire's query API takes SQL as text, without parameters: obs.py only puts its own constants
+# and a validated environment name into it.
+"**/obs.py" = ["S608"]
 
 # Same level as Pylance in VS Code ("standard"): what passes here shows no warnings in the editor.
 [tool.pyright]

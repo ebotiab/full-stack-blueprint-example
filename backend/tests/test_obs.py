@@ -1,7 +1,5 @@
 """`obs status` logic, with a fake Logfire client: no network, no token."""
 
-from __future__ import annotations
-
 import datetime as dt
 from pathlib import Path
 from typing import Any

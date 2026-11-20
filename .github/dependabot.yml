@@ -36,7 +36,7 @@ updates:
       # oxfmt is pinned to an exact version on purpose (beta: formatting may change between
       # releases). Upgrade it by hand together with `make fmt`.
       - dependency-name: oxfmt
-      # @types/node follows the Node major in use (24), not its own releases.
+      # @types/node follows the Node major in use (26), not its own releases.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
 

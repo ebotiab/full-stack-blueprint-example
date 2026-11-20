@@ -1,7 +1,5 @@
 """Integration tests against PostgreSQL: the migration runner and a route that reads the database."""
 
-from __future__ import annotations
-
 import asyncio
 from pathlib import Path
 
@@ -17,10 +15,6 @@ from my_project.db.migrate import (
     migrate,
 )
 from my_project.db.pool import connect
-
-from .conftest import requires_db
-
-pytestmark = requires_db
 
 
 async def test_migrate_applies_everything_once(db_conn: asyncpg.Connection) -> None:

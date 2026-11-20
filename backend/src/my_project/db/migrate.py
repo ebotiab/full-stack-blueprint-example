@@ -2,13 +2,14 @@
 
 `migrate()` is idempotent and safe to run from several processes at once: it holds a PostgreSQL
 advisory lock while it works, so a second runner waits and then finds nothing pending. Each file
-runs in its own transaction together with its row in `schema_migrations`. An applied file must not
-change afterwards (its checksum is stored): write a new migration instead.
+runs in its own transaction together with its row in `schema_migrations`, so a statement that
+PostgreSQL refuses inside a transaction (`CREATE INDEX CONCURRENTLY`, `VACUUM`) fails here: create
+the index without `CONCURRENTLY`, or build it by hand on the production database first and write
+the migration as `CREATE INDEX IF NOT EXISTS`. An applied file must not change afterwards (its
+checksum is stored): write a new migration instead.
 
 Run it with `my-project migrate` (or `make migrate`).
 """
-
-from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
