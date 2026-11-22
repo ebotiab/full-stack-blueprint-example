@@ -12,7 +12,10 @@ Work outward from the database to the visor, so each layer is typed by the one b
    (next number; plain SQL; one concern per file) and run `make migrate`. Never edit an applied migration.
 2. **Route.** In `backend/src/my_project/api/routes.py` (or a new module included in `api/main.py`
    under the `/api` prefix): a Pydantic response model, a typed handler, SQL with
-   `$1` parameters through the `ConnectionDep` connection (never string formatting).
+   `$1` parameters through the `ConnectionDep` connection (never string formatting). Responses
+   are `Cache-Control: no-store` by default; set the header in the route only if its data is public.
+   A route for signed-in callers takes `user: CurrentUser` (or `AdminUser`) from `auth/deps.py`;
+   a route that changes state is never a GET.
 3. **Test.** A pytest test in `backend/tests/` for the new behaviour, including its error cases. Tests that need
    PostgreSQL use the `db_url`/`db_conn`/`app_settings` fixtures from `tests/conftest.py`.
 4. **Contract.** `make types`. Review the diff of `backend/openapi.json`: it is what clients see.

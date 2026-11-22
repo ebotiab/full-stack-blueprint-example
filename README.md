@@ -29,10 +29,29 @@ Optional local settings: `backend/.env.example` and `frontend/.env.example`.
 | --- | --- |
 | `make check` | Formatting, lint, types, API contract, tests, build and Playwright: what the CI runs. |
 | `make test` | pytest and Vitest; `make e2e` runs Playwright. |
+| `make coverage` | The backend lines that no test runs (a report, no threshold). |
 | `make fmt` | Formats and auto-fixes the code. |
 | `make types` | Regenerates the OpenAPI schema and the visor's API types after an API change. |
 | `make migrate` | Applies new migrations (`backend/src/my_project/db/migrations/`). |
 | `make help` | Lists every target. |
+
+## Accounts
+
+Accounts live in the project's PostgreSQL. There is no sign-up page: create them with the CLI,
+which reads the password from standard input so that it stays out of the shell's history:
+
+```bash
+cd backend
+printf '%s\n' "$PASSWORD" | uv run my-project users create --email you@example.com --admin
+uv run my-project api-keys create --email you@example.com --name my-script   # printed once
+```
+
+The visor shows a sign-in form until someone is signed in, and `/api/messages`, the example
+route, answers only signed-in users. A browser signs in with `POST /api/auth/login` and then holds an
+HttpOnly session cookie (7 days without use or 30 in total end it). Scripts send an API key as
+`Authorization: Bearer <key>`.
+`users set-password`, `users deactivate`, `api-keys list` and `api-keys revoke` do the rest; `--help`
+explains each one. Ten wrong passwords in a row pause an account's sign-in for a minute per attempt.
 
 ## Deploy
 
@@ -60,6 +79,9 @@ different, change it there. Web Analytics: turn it on in the project (no cookies
 
 **GitHub.** Protect `main`: require pull requests and the checks `Backend` and `Frontend`, and
 allow auto-merge (Settings → General → "Allow auto-merge").
+
+**First administrator.** Once the API is deployed, create it against the production database:
+`printf '%s\n' "$PASSWORD" | DATABASE_URL="<Neon direct URL>" uv run my-project users create --email … --admin` from `backend/`.
 
 **After a deploy.** `cd backend && uv run my-project obs status --commit <sha> --wait 15` says when the commit is live
 and lists any error since.

@@ -9,6 +9,8 @@ import pytest
 from asgi_lifespan import LifespanManager
 
 from my_project.api.main import create_app
+from my_project.auth.deps import current_user
+from my_project.auth.users import User
 from my_project.db.migrate import (
     MigrationError,
     list_migrations,
@@ -46,6 +48,8 @@ async def test_a_changed_migration_is_rejected(db_conn: asyncpg.Connection, tmp_
 @pytest.mark.usefixtures("app_settings")
 async def test_messages_come_from_the_database() -> None:
     app = create_app()
+    # A stand-in for the signed-in user: tests/test_auth.py covers signing in.
+    app.dependency_overrides[current_user] = lambda: User(id=1, email="a@b.example", is_admin=False)
     async with (
         LifespanManager(app),
         httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as http,

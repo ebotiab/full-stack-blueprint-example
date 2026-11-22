@@ -6,6 +6,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 
 from .. import __version__
+from ..auth.deps import CurrentUser
 from ..observability import deployed_commit
 from .deps import ConnectionDep
 
@@ -31,7 +32,7 @@ async def healthz() -> Health:
 
 
 @router.get("/messages", tags=["messages"])
-async def list_messages(conn: ConnectionDep) -> list[Message]:
-    """Messages from the database, newest first."""
+async def list_messages(conn: ConnectionDep, user: CurrentUser) -> list[Message]:
+    """Messages from the database, newest first. Only for signed-in users."""
     rows = await conn.fetch("SELECT id, text, created_at FROM messages ORDER BY id DESC LIMIT 50")
     return [Message(**dict(row)) for row in rows]

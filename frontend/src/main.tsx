@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 
 import { App } from './App'
 import './index.css'
+import { RequireSignIn } from './RequireSignIn'
 import { startTelemetry } from './telemetry'
 
 startTelemetry()
@@ -13,7 +14,10 @@ if (!root) throw new Error('Missing #root element')
 
 createRoot(root).render(
   <StrictMode>
-    <App />
+    {/* Sign-in until someone is signed in, then the app (src/RequireSignIn.tsx). */}
+    <RequireSignIn>
+      <App />
+    </RequireSignIn>
     {/* Vercel Web Analytics: no cookies; it only counts on Vercel and does nothing locally. */}
     <Analytics />
   </StrictMode>,

@@ -17,6 +17,7 @@ STEPS := bash scripts/steps.sh
 BACKEND_STEPS := \
 	"Python format (ruff format)::cd backend && uv run ruff format --check ." \
 	"Python lint (ruff check)::cd backend && uv run ruff check ." \
+	"Workflows (zizmor)::cd backend && uv run zizmor --offline --no-progress ../.github" \
 	"Python types (pyright)::cd backend && uv run pyright" \
 	"OpenAPI schema up to date (backend/openapi.json)::$(MAKE) openapi-check" \
 	"Python tests (pytest + PostgreSQL)::cd backend && MY_PROJECT_TEST_DATABASE_URL='$(TEST_DATABASE_URL)' uv run pytest"
@@ -30,7 +31,7 @@ FRONTEND_STEPS := \
 	"Visor build (vite build)::cd frontend && npx vite build" \
 	"Visor browser tests (Playwright)::cd frontend && npx playwright test"
 
-.PHONY: help doctor setup dev check check-backend check-frontend e2e schema-check test fmt types openapi-check migrate db-up db-down
+.PHONY: help doctor setup dev check check-backend check-frontend e2e schema-check test coverage fmt types openapi-check migrate db-up db-down
 
 help: ## List the tasks
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "  make %-15s %s\n", $$1, $$2}'
@@ -71,6 +72,10 @@ test: ## Run the tests: pytest against PostgreSQL and Vitest (Playwright: make e
 	@$(STEPS) \
 		"Python tests (pytest)::cd backend && MY_PROJECT_TEST_DATABASE_URL='$(TEST_DATABASE_URL)' uv run pytest" \
 		"Visor unit tests (Vitest)::cd frontend && npm run --silent test"
+
+coverage: ## Which backend lines no test runs (pytest-cov): a report to read, no threshold
+	@$(if $(CI),true,$(MAKE) db-up)
+	@cd backend && MY_PROJECT_TEST_DATABASE_URL='$(TEST_DATABASE_URL)' uv run pytest --cov --cov-report=term-missing:skip-covered
 
 e2e: ## Run the Playwright browser tests (they answer /api themselves)
 	@cd frontend && npx playwright test

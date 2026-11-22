@@ -1,9 +1,10 @@
 """Settings read from the environment (and from backend/.env). Everything works locally without credentials."""
 
 from functools import lru_cache
+from typing import Annotated
 
-from pydantic import AliasChoices, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import AliasChoices, Field, field_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 #: Prefix of this project's environment variables.
 PREFIX = "MY_PROJECT_"
@@ -31,6 +32,16 @@ class Settings(BaseSettings):
     #: Apply pending migrations when the API starts. On by default where the platform has no
     #: pre-deploy step (this target).
     migrate_on_start: bool = True
+    #: The visor's origins, comma-separated (`https://my-app.vercel.app`). Only browsers that do not
+    #: send `Sec-Fetch-Site` (from before 2023) need them: see `auth/deps.py`, `check_same_origin`.
+    auth_public_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    @field_validator("auth_public_origins", mode="before")
+    @classmethod
+    def _split_origins(cls, value: object) -> object:
+        if isinstance(value, str):
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
 
 @lru_cache
