@@ -77,6 +77,13 @@ is taken. Migrations run at start-up. The free plan sleeps after 15 idle minutes
 `frontend`. `frontend/vercel.json` proxies `/api` to `https://my-project-api.onrender.com`: if the API's real URL is
 different, change it there. Web Analytics: turn it on in the project (no cookies).
 
+**Origin secret (recommended).** So that nothing reaches the API without going through Vercel,
+generate a value (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"`) and set it as
+`ORIGIN_SECRET` in the Vercel project (Production and Preview: previews call the same API) and as
+`MY_PROJECT_ORIGIN_SECRET` on the API's platform. The API then answers 403 to /api requests that did not
+come through the visor's domain (`/api/healthz` excepted), so scripts call `https://<visor>/api/…`.
+Without the Vercel variable, Vercel sends the literal text `$ORIGIN_SECRET`: set both or neither.
+
 **GitHub.** Protect `main`: require pull requests and the checks `Backend` and `Frontend`, and
 allow auto-merge (Settings → General → "Allow auto-merge").
 

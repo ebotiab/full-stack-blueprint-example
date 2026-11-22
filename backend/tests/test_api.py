@@ -1,9 +1,13 @@
 """API tests that need no database: the app is called in-process, without its lifespan."""
 
+from collections.abc import Iterator
+
 import httpx
+import pytest
 from fastapi import FastAPI, Response
 
 from my_project.api.main import create_app
+from my_project.settings import PREFIX, get_settings
 
 
 def client(app: FastAPI | None = None) -> httpx.AsyncClient:
@@ -44,3 +48,32 @@ def test_openapi_lists_the_routes() -> None:
     paths = create_app().openapi()["paths"]
     assert "/api/healthz" in paths
     assert "/api/messages" in paths
+
+
+@pytest.fixture
+def origin_secret(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+    """The API configured with an origin secret, as when Vercel proxies it (ORIGIN_SECRET)."""
+    monkeypatch.setenv(f"{PREFIX}ORIGIN_SECRET", "from-vercel")
+    get_settings.cache_clear()
+    yield "from-vercel"
+    get_settings.cache_clear()
+
+
+async def test_with_an_origin_secret_only_requests_through_vercel_reach_the_api(
+    origin_secret: str,
+) -> None:
+    app = create_app()
+
+    @app.get("/api/data")
+    async def data() -> dict[str, str]:
+        return {}
+
+    async with client(app) as http:
+        assert (await http.get("/api/data")).status_code == 403
+        wrong = {"x-origin-secret": "guessed"}
+        assert (await http.get("/api/data", headers=wrong)).status_code == 403
+        right = {"x-origin-secret": origin_secret}
+        assert (await http.get("/api/data", headers=right)).status_code == 200
+        # The platform's health check and the docs need no secret.
+        assert (await http.get("/api/healthz")).status_code == 200
+        assert (await http.get("/openapi.json")).status_code == 200

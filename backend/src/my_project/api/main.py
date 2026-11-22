@@ -1,10 +1,12 @@
 """The My Project API. Every route lives under /api, so the visor and the API can share a domain."""
 
+import hmac
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import logfire
 from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from .. import __version__
@@ -45,6 +47,23 @@ async def no_store_by_default(request: Request, call_next: RequestResponseEndpoi
     return response
 
 
+async def only_through_vercel(request: Request, call_next: RequestResponseEndpoint) -> Response:
+    """With `ORIGIN_SECRET` set, /api answers only requests that came through the visor's domain.
+
+    Vercel adds the secret as `x-origin-secret` to every request it proxies to /api, replacing any
+    value the client sent (frontend/vercel.json). A request straight to the API's own URL lacks
+    it and gets 403, so nothing can skip Vercel (its firewall, its logs). `/api/healthz` stays
+    open for the platform's health checks, and so do the docs outside /api.
+    """
+    secret = get_settings().origin_secret
+    path = request.url.path
+    if secret and path.startswith("/api/") and path != "/api/healthz":
+        given = request.headers.get("x-origin-secret", "")
+        if not hmac.compare_digest(given.encode(), secret.encode()):
+            return JSONResponse({"detail": "Use the API through the visor's domain."}, 403)
+    return await call_next(request)
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logfire(settings)
@@ -60,6 +79,7 @@ def create_app() -> FastAPI:
         max_size=settings.db_pool_max_size,
     )
     instrument_api(app)
+    app.add_middleware(BaseHTTPMiddleware, dispatch=only_through_vercel)
     app.add_middleware(BaseHTTPMiddleware, dispatch=no_store_by_default)
     app.include_router(routes.router, prefix="/api")
     app.include_router(auth_routes.router, prefix="/api")
