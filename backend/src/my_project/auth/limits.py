@@ -1,6 +1,7 @@
-"""Password attempts per account: a token bucket kept in PostgreSQL.
+"""Attempts per account (passwords, reset emails): token buckets kept in PostgreSQL.
 
-Each account starts with `CAPACITY` attempts and gets one back every `REFILL_SECONDS`. An attempt
+For passwords, each account starts with `CAPACITY` attempts and gets one back every
+`REFILL_SECONDS`. An attempt
 on an empty bucket is refused without checking the password and spends nothing, so a stream of
 guesses cannot keep the owner locked out longer than the refill time. It needs no Redis, so it
 works on serverless functions too.
@@ -31,14 +32,20 @@ async def take_attempt(conn: asyncpg.Connection, email: str) -> bool:
 
     Unknown emails get a bucket too: a refusal must not tell whether an account exists.
     """
-    key = f"password:{normalize_email(email)}"
-    left = await conn.fetchval(_TAKE, key, CAPACITY, REFILL_SECONDS)
-    return left is not None
+    return await take(conn, f"password:{normalize_email(email)}", CAPACITY, REFILL_SECONDS)
+
+
+async def take(conn: asyncpg.Connection, key: str, capacity: float, refill_seconds: float) -> bool:
+    """Spend one token of the bucket `key`; False (and nothing spent) when it is empty."""
+    return await conn.fetchval(_TAKE, key, capacity, refill_seconds) is not None
 
 
 async def forget_full_buckets(conn: asyncpg.Connection) -> None:
-    """Drop rows whose bucket has refilled completely: they mean the same as no row."""
+    """Drop rows whose bucket has refilled completely: they mean the same as no row.
+
+    Measured with the longest refill of any bucket (an hour), so no bucket is forgotten early.
+    """
     await conn.execute(
         "DELETE FROM auth_attempts WHERE updated_at < now() - make_interval(secs => $1)",
-        CAPACITY * REFILL_SECONDS,
+        max(CAPACITY * REFILL_SECONDS, 3600.0),
     )
