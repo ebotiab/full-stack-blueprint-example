@@ -1,8 +1,9 @@
 # Changes here will be overwritten by Copier; do not edit by hand. Update with `copier update`.
-_commit: v0.2.1-18-g1d5b356
+_commit: v0.3.0
 _src_path: gh:ebotiab/full-stack-blueprint
 api_deploy: render
 api_public_url: https://my-project-api.onrender.com
+auth: sessions
 description: A FastAPI API with a React visor.
 env_prefix: MY_PROJECT_
 github_repo: ebotiab/full-stack-blueprint-example

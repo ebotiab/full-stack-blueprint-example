@@ -1,5 +1,12 @@
 import { expect, test } from '@playwright/test'
 
+// Signed in: e2e/sign-in.spec.ts tests the form itself.
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/auth/me', (route) =>
+    route.fulfill({ json: { id: 1, email: 'ada@example.com', is_admin: false } }),
+  )
+})
+
 // The test answers /api itself: it checks the visor, not the API (that is pytest's job).
 test('lists the messages from the API', async ({ page }) => {
   await page.route('**/api/messages', (route) =>

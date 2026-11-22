@@ -10,6 +10,8 @@ dependencies = [
     "httpx>=0.28.1",
     "logfire[asyncpg,fastapi,httpx]>=5.6.0",
     "pydantic-settings>=2.16.2",
+    # Argon2id password hashing (auth/passwords.py).
+    "pwdlib[argon2]>=0.4.0",
     "typer>=0.29.1",
     "uvicorn[standard]>=0.54.0",
 ]
@@ -31,7 +33,10 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.5",
+    # Security audit of the GitHub Actions workflows (make check).
+    "zizmor>=1.32.0",
 ]
 
 # Only releases that are at least 7 days old: a compromised release is usually found and withdrawn
@@ -52,6 +57,14 @@ testpaths = ["tests"]
 addopts = ["--no-logfire"]
 filterwarnings = ["error::DeprecationWarning:my_project.*"]
 
+# `make coverage`: branch coverage of the package, files with nothing left uncovered omitted.
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+skip_empty = true
+
 [tool.ruff]
 line-length = 100
 target-version = "py314"
@@ -67,8 +80,8 @@ select = [
 ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
-# Tests assert.
-"tests/*" = ["S101"]
+# Tests assert and sign in with made-up passwords.
+"tests/*" = ["S101", "S105", "S106"]
 # Logfire's query API takes SQL as text, without parameters: obs.py only puts its own constants
 # and a validated environment name into it.
 "**/obs.py" = ["S608"]
