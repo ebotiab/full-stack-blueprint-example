@@ -28,6 +28,9 @@ answers and is only changed by `copier update` (see "Template updates").
 - `render.yaml`: the Render Blueprint of the API. `backend/Dockerfile`: its image.
 - `frontend/vercel.json`: the visor on Vercel; it proxies `/api` to the API, so there is no CORS.
   `x-vercel-enable-rewrite-caching: 0` keeps Vercel's CDN from caching what the proxy returns.
+  Its `routes` rule adds `x-origin-secret` (Vercel variable ORIGIN_SECRET) to every proxied request;
+  with `MY_PROJECT_ORIGIN_SECRET` set to the same value, the API answers 403 to /api requests that skip
+  Vercel (`api/main.py`, `only_through_vercel`). Scripts then call the API at the visor's domain.
 - `.agents/skills/`: procedures for agents (`.claude/skills` links here). `.vscode/`: editor settings that match the checks.
 
 ## Commands

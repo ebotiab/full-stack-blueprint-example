@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     #: Apply pending migrations when the API starts. On by default where the platform has no
     #: pre-deploy step (this target).
     migrate_on_start: bool = True
+    #: The value Vercel adds as `x-origin-secret` to every /api request it proxies
+    #: (frontend/vercel.json, from the Vercel variable ORIGIN_SECRET). When set, the API refuses
+    #: /api requests without it: only the visor's domain reaches the API. Empty: not checked.
+    origin_secret: str = ""
     #: The visor's origins, comma-separated (`https://my-app.vercel.app`). Only browsers that do not
     #: send `Sec-Fetch-Site` (from before 2023) need them: see `auth/deps.py`, `check_same_origin`.
     auth_public_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)
