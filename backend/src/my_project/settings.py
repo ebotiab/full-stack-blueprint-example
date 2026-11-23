@@ -10,7 +10,8 @@ from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 PREFIX = "MY_PROJECT_"
 #: User, password and database name of the docker-compose PostgreSQL (make db-up).
 _LOCAL_DB = "my_project"
-#: The docker-compose PostgreSQL.
+#: The docker-compose PostgreSQL. A git worktree has its own database there, which `make db-up`
+#: writes to the worktree's backend/.env (scripts/db-name.sh).
 LOCAL_DATABASE_URL = f"postgresql://{_LOCAL_DB}:{_LOCAL_DB}@localhost:5434/{_LOCAL_DB}"
 
 
