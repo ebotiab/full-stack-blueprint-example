@@ -1,11 +1,20 @@
-"""`obs status` logic, with a fake Logfire client: no network, no token."""
+"""`obs status` logic, with a fake Logfire client (no network, no token), and what is traced."""
 
 import datetime as dt
+import json
 from pathlib import Path
 from typing import Any
 
+import httpx
+from fastapi import FastAPI
+from logfire.testing import CaptureLogfire
+from pydantic import BaseModel
+
 from my_project import obs
-from my_project.observability import deployed_commit
+from my_project.observability import (
+    deployed_commit,
+    instrument_api,
+)
 from my_project.settings import PREFIX
 
 
@@ -78,3 +87,28 @@ def test_deployed_commit_reads_our_variable_then_the_platforms(tmp_path: Path) -
     assert deployed_commit(both, missing) == "own"
     missing.write_text("f1\n", encoding="utf-8")
     assert deployed_commit({}, missing) == "f1"
+
+
+class ResetBody(BaseModel):
+    email: str
+    code: str
+
+
+async def test_requests_are_traced_without_their_arguments(capfire: CaptureLogfire) -> None:
+    """Neither a request's body nor its signed-in user reaches Logfire; a validation error does,
+    without the value that was sent."""
+    app = FastAPI()
+
+    @app.post("/reset")
+    async def reset(body: ResetBody) -> None: ...
+
+    instrument_api(app)
+    transport = httpx.ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as http:
+        await http.post("/reset", json={"email": "ada@example.com", "code": "ABCD-EFGH"})
+        await http.post("/reset", json={"email": "ada@example.com"})
+    spans = capfire.exporter.exported_spans_as_dict()
+    traced = json.dumps([span["attributes"] for span in spans], default=str)
+    assert "fastapi.arguments.errors" in traced
+    assert "ada@example.com" not in traced
+    assert "ABCD-EFGH" not in traced
