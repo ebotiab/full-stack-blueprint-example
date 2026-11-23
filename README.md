@@ -97,4 +97,5 @@ and lists any error since.
 
 This project was generated with [Copier](https://copier.readthedocs.io) from `full-stack-blueprint`.
 To take later improvements: commit or stash your work, run `copier update --defaults`, resolve
-conflicts, then `make setup && make check`.
+conflicts, then `make setup && make check`. The template's release notes say what each version
+changes (its repository is `_src_path` in `.copier-answers.yml`).
