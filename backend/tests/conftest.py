@@ -11,7 +11,8 @@ from my_project.db.pool import connect
 from my_project.settings import PREFIX, get_settings
 
 #: Integration tests run against a real PostgreSQL database: `make test` and the CI set this
-#: variable to a throwaway database (`my_project_test`). Without it they are skipped.
+#: variable to a throwaway database (`<package>_test`, or `wt_<name>_test` in a git worktree:
+#: scripts/db-name.sh). Without it they are skipped.
 TEST_DATABASE_ENV = f"{PREFIX}TEST_DATABASE_URL"
 
 

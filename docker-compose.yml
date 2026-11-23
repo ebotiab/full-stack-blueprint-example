@@ -1,5 +1,11 @@
 # Local PostgreSQL for development and tests: `make db-up` (or `docker compose up -d --wait`).
 # Production uses Neon (README, "Deploy").
+#
+# One Compose project for every checkout of the repository, the main one and its git worktrees
+# (Compose would otherwise name it after the folder): they share these containers, and each
+# worktree has its own databases in this PostgreSQL (scripts/db-name.sh).
+name: my-project
+
 services:
   postgres:
     image: postgres:18-alpine

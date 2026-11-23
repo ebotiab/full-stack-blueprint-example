@@ -53,6 +53,18 @@ if command -v docker >/dev/null 2>&1; then
     else
       ok "port 5434 is available for PostgreSQL"
     fi
+    # Every checkout shares one Compose project, my-project (docker-compose.yml, `name:`;
+    # COMPOSE_PROJECT_NAME overrides it). A container of the same name under another Compose
+    # project is in the way: this project's own from before `name:` (named after the folder), or
+    # another project's with the same name. Removing it keeps its data, in its volume, which its
+    # Compose project uses again when it next starts.
+    expected=${COMPOSE_PROJECT_NAME:-my-project}
+    for container in my-project-postgres; do
+      project=$(docker inspect --format '{{index .Config.Labels "com.docker.compose.project"}}' "$container" 2>/dev/null || true)
+      if [ -n "$project" ] && [ "$project" != "$expected" ]; then
+        bad "the container $container belongs to the Compose project $project, not $expected" "docker rm -f $container  (data lives in volumes, not containers: PostgreSQL's stays in ${project}_postgres18; make setup then starts this project's own and migrates it)"
+      fi
+    done
   else
     bad "docker is installed but its daemon is not running" "start Docker Desktop (or: sudo systemctl start docker)"
   fi

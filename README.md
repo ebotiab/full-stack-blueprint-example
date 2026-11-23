@@ -22,6 +22,8 @@ make dev      # API on http://127.0.0.1:8000/api, visor on http://127.0.0.1:5173
 The API documentation is at http://127.0.0.1:8000/docs while `make dev` runs. Nothing needs
 credentials locally: Logfire sends nothing without a token, and the database is the local container.
 Optional local settings: `backend/.env.example` and `frontend/.env.example`.
+Several git worktrees of the project can run `make setup` and `make check` at the same time: they
+share the local PostgreSQL, and each worktree gets its own databases in it (`scripts/db-name.sh`).
 
 ## Everyday commands
 

@@ -22,8 +22,8 @@ answers and is only changed by `copier update` (see "Template updates").
   - `src/api/client.ts`: the typed API client (`openapi-fetch`). `src/api/schema.d.ts` is generated from `backend/openapi.json`: never edit it.
   - `src/RequireSignIn.tsx`: the sign-in form, shown until `/api/auth/me` answers with a user; then `App`. The session cookie is HttpOnly: the visor never sees a token and never stores one.
   - `src/**/*.test.ts`: unit tests (Vitest). `e2e/`: browser tests (Playwright); they answer `/api` themselves with `page.route`.
-- `Makefile`: one target per task (below). `scripts/`: what the Makefile runs (`doctor.sh`, `steps.sh`).
-- `docker-compose.yml`: the local PostgreSQL 18 on port 5434.
+- `Makefile`: one target per task (below). `scripts/`: what the Makefile runs (`doctor.sh`, `steps.sh`, `db-name.sh`).
+- `docker-compose.yml`: the local PostgreSQL 18 on port 5434, one Compose project (`my-project`) shared by every checkout of the repository.
 - `.github/workflows/ci.yml`: the CI; `.github/scripts/what-changed.sh` decides which half a pull request can affect. `make check` audits the workflows with zizmor: keep `persist-credentials: false` on checkouts and pinned actions. Its `ty preview` job is informational: it never fails. `.github/dependabot.yml`: weekly grouped dependency updates.
 - `render.yaml`: the Render Blueprint of the API. `backend/Dockerfile`: its image.
 - `frontend/vercel.json`: the visor on Vercel; it proxies `/api` to the API, so there is no CORS.
@@ -97,6 +97,13 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
   The runner is idempotent and takes a PostgreSQL advisory lock, so concurrent starts are safe.
   Each file runs in one transaction: a statement PostgreSQL refuses inside one (`CREATE INDEX
   CONCURRENTLY`) fails; the docstring of `db/migrate.py` says what to do instead.
+- **Git worktrees.** Several worktrees can run `make setup`, `make check` and the tests at the same
+  time. They share the local PostgreSQL, and each worktree has its own databases in it,
+  `wt_<worktree name>` and `wt_<worktree name>_test` (`bash scripts/db-name.sh` prints the first;
+  the main checkout keeps `my_project`). `make db-up` creates them and writes the worktree's
+  `MY_PROJECT_DATABASE_URL` to its `backend/.env`, so `make`, the app and the CLI all use them. `make db-down`
+  stops PostgreSQL for every checkout. A removed worktree's databases stay: `docker compose exec
+  postgres psql -U my_project -l` lists them and `docker compose exec postgres dropdb -U my_project <name>` drops one.
 - **No caching by default.** Every API response carries `Cache-Control: no-store` unless its route
   sets `Cache-Control` itself (`api/main.py`), so no shared cache serves one caller's response to
   another. Set it only on routes whose data is public; Vercel's CDN still skips the proxied `/api`
