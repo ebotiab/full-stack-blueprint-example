@@ -10,10 +10,10 @@ and what failed since it arrived" (`my-project obs status`).
 import os
 from collections.abc import Mapping
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import logfire
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, WebSocket
 
 from . import __version__
 from .settings import Settings
@@ -83,6 +83,28 @@ def configure_logfire(settings: Settings) -> None:
     _configured = True
 
 
+def request_attributes(
+    _request: Request | WebSocket, attributes: dict[str, Any]
+) -> dict[str, Any] | None:
+    """What a request's span keeps of its endpoint's arguments: only validation errors, without
+    the value that was sent.
+
+    The arguments hold the request body and the signed-in user: emails, one-time codes, whatever
+    the app adds later. Logfire's scrubbing redacts keys such as `password` or `session`, not
+    `email` or `code`, so they stay out of the trace altogether.
+    """
+    errors = [
+        {key: value for key, value in error.items() if key != "input"}
+        for error in attributes.get("errors", [])
+    ]
+    return {"errors": errors} if errors else None
+
+
 def instrument_api(app: FastAPI) -> None:
-    """One span per request, without headers and without health checks."""
-    logfire.instrument_fastapi(app, capture_headers=False, excluded_urls=EXCLUDED_URLS)
+    """One span per request, without headers, arguments (`request_attributes`) or health checks."""
+    logfire.instrument_fastapi(
+        app,
+        capture_headers=False,
+        request_attributes_mapper=request_attributes,
+        excluded_urls=EXCLUDED_URLS,
+    )
