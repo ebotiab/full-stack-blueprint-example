@@ -80,7 +80,13 @@ def configure_logfire(settings: Settings) -> None:
         ),
     )
     logfire.instrument_asyncpg()
+    instrument_agent(settings)
     _configured = True
+
+
+def instrument_agent(settings: Settings) -> None:
+    """Agent runs, model requests and tool calls as spans; their text only if the setting allows."""
+    logfire.instrument_pydantic_ai(include_content=settings.agent_trace_content)
 
 
 def request_attributes(

@@ -20,7 +20,9 @@ make dev      # API on http://127.0.0.1:8000/api, visor on http://127.0.0.1:5173
 ```
 
 The API documentation is at http://127.0.0.1:8000/docs while `make dev` runs. Nothing needs
-credentials locally: Logfire sends nothing without a token, and the database is the local container.
+credentials locally: Logfire sends nothing without a token, and the database is the local container. The
+agent (`POST /api/agent`) answers 503 until you put a model key in `backend/.env` (`ANTHROPIC_API_KEY`
+for the default model, `MY_PROJECT_AI_MODEL` to change it).
 Optional local settings: `backend/.env.example` and `frontend/.env.example`.
 Several git worktrees of the project can run `make setup` and `make check` at the same time: they
 share the local PostgreSQL, and each worktree gets its own databases in it (`scripts/db-name.sh`).
@@ -86,6 +88,10 @@ generate a value (`python3 -c "import secrets; print(secrets.token_urlsafe(32))"
 come through the visor's domain (`/api/healthz` excepted), so scripts call `https://<visor>/api/…`.
 Without the Vercel variable, Vercel sends the literal text `$ORIGIN_SECRET`: set both or neither.
 
+**Agent.** Set the model's key on the API's platform: `ANTHROPIC_API_KEY` for the default model, or
+the variable of the provider in `MY_PROJECT_AI_MODEL`. Until then `/api/agent` answers 503. Logfire traces keep the text of questions and
+answers; `MY_PROJECT_AGENT_TRACE_CONTENT=false` keeps only the metadata.
+
 **GitHub.** Protect `main`: require pull requests and the checks `Backend` and `Frontend`, and
 allow auto-merge (Settings → General → "Allow auto-merge").
 
@@ -94,6 +100,26 @@ allow auto-merge (Settings → General → "Allow auto-merge").
 
 **After a deploy.** `cd backend && uv run my-project obs status --commit <sha> --wait 15` says when the commit is live
 and lists any error since.
+
+## Skills for coding agents
+
+`.agents/skills/` (also `.claude/skills/`) gives agents the project's own procedures and links to
+the skills that FastAPI, Typer, Pydantic AI and Logfire ship in their packages, so the guidance matches the
+installed versions. More skills that fit this project live in other repositories; add the ones you
+want with [`npx skills`](https://github.com/vercel-labs/skills) (it needs Node), which records the
+commit of each in `skills-lock.json` (commit it). `--min-release-age=7` runs a release of the tool
+that is at least 7 days old, as the rest of the project installs:
+
+```bash
+npx --min-release-age=7 skills add pydantic/skills --skill pydantic                # Pydantic models and validation
+npx --min-release-age=7 skills add pydantic/skills --skill logfire-query           # query this project's traces
+npx --min-release-age=7 skills add pydantic/skills --skill logfire-frontend        # browser errors and Web Vitals
+npx --min-release-age=7 skills add microsoft/playwright-cli --skill playwright-cli # drive a browser from the agent
+npx --min-release-age=7 skills add neondatabase/agent-skills --skill neon-postgres # the production database
+npx --min-release-age=7 skills add render-oss/skills --skill render-deploy         # deploys on Render
+```
+
+They are read as instructions: look at what a skill says before adding it.
 
 ## Template updates
 

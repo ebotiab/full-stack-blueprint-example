@@ -5,7 +5,7 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 .coverage
-backend/.logfire/
+.logfire/
 # Written by the FastAPI Cloud deploy workflow, never committed.
 backend/DEPLOYED_COMMIT
 

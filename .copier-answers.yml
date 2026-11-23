@@ -1,6 +1,7 @@
 # Changes here will be overwritten by Copier; do not edit by hand. Update with `copier update`.
-_commit: v0.9.1
+_commit: v0.10.0
 _src_path: gh:ebotiab/full-stack-blueprint
+agent: pydantic_ai
 api_deploy: render
 api_public_url: https://my-project-api.onrender.com
 auth: sessions

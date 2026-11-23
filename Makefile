@@ -25,7 +25,8 @@ BACKEND_STEPS := \
 	"Workflows (zizmor)::cd backend && uv run zizmor --offline --no-progress ../.github" \
 	"Python types (pyright)::cd backend && uv run pyright" \
 	"OpenAPI schema up to date (backend/openapi.json)::$(MAKE) openapi-check" \
-	"Python tests (pytest + PostgreSQL)::cd backend && MY_PROJECT_TEST_DATABASE_URL='$(TEST_DATABASE_URL)' uv run pytest"
+	"Python tests (pytest + PostgreSQL)::cd backend && MY_PROJECT_TEST_DATABASE_URL='$(TEST_DATABASE_URL)' uv run pytest" \
+	"Library skills resolve (.agents/skills)::bash scripts/check-skills.sh"
 
 FRONTEND_STEPS := \
 	"Visor format (oxfmt)::cd frontend && npm run --silent fmt:check" \
