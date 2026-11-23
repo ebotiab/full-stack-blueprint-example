@@ -3,7 +3,7 @@
 A FastAPI API with a React visor.
 
 - **API**: FastAPI on Python 3.14, PostgreSQL through asyncpg with plain SQL migrations, traces in Logfire.
-- **Visor**: Vite + React + TypeScript, calling the API through a client typed from its OpenAPI schema.
+- **Visor**: Vite + React + TypeScript + Tailwind CSS 4, calling the API through a client typed from its OpenAPI schema.
 - **Deploy**: the API on Render, the visor on Vercel, the database on Neon.
 
 Working with a coding agent? It reads [AGENTS.md](AGENTS.md), which has the layout, the commands

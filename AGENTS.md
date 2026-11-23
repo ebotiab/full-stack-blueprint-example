@@ -18,7 +18,7 @@ answers and is only changed by `copier update` (see "Template updates").
   - `src/my_project/cli.py`: the `my-project` command (`migrate`, `users`, `api-keys`, `openapi`, `obs status`).
   - `openapi.json`: the API contract, generated (`make types`). Committed.
   - `tests/`: pytest; the integration tests use a real PostgreSQL database.
-- `frontend/`: the visor. Vite, React, TypeScript, oxlint (with type-aware rules), oxfmt, Vitest, Playwright.
+- `frontend/`: the visor. Vite, React, TypeScript, Tailwind CSS 4 (Vite plugin, theme in `src/index.css`), oxlint (with type-aware rules), oxfmt, Vitest, Playwright.
   - `src/api/client.ts`: the typed API client (`openapi-fetch`). `src/api/schema.d.ts` is generated from `backend/openapi.json`: never edit it.
   - `src/RequireSignIn.tsx`: the sign-in form, shown until `/api/auth/me` answers with a user; then `App`. The session cookie is HttpOnly: the visor never sees a token and never stores one.
   - `src/**/*.test.ts`: unit tests (Vitest). `e2e/`: browser tests (Playwright); they answer `/api` themselves with `page.route`.
@@ -87,7 +87,8 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
   never redeclared. Add a library only when the visor needs it, in its own pull request: a router
   (React Router) once there are several pages with their own URLs, TanStack Query once several
   components share or refresh the same data, a form library once forms need more validation than
-  the browser's. Plain CSS in `src/index.css` until the project chooses a design system.
+  the browser's. Style components with Tailwind utility classes in `className`; `src/index.css` only holds
+  the theme and the base look of plain elements. For ready components, shadcn/ui (its CLI) in its own pull request.
 - **SQL, no ORM.** Queries are plain SQL run with asyncpg, with `$1` parameters (never string
   formatting: ruff's `S608` rejects it), next to the code that uses them; rows become Pydantic models right there. Write the
   SQL yourself and do not add an ORM or a query builder: explicit SQL is easier to review and test.
