@@ -1,5 +1,5 @@
 # Changes here will be overwritten by Copier; do not edit by hand. Update with `copier update`.
-_commit: v0.8.1
+_commit: v0.8.2
 _src_path: gh:ebotiab/full-stack-blueprint
 api_deploy: render
 api_public_url: https://my-project-api.onrender.com
