@@ -6,11 +6,17 @@
 # is usually found and withdrawn within days; security updates do not wait. The same window
 # applies wherever dependencies are resolved, so every update Dependabot opens can be locked:
 # uv (`exclude-newer` in backend/pyproject.toml) and npm (`min-release-age` in frontend/.npmrc).
+#
+# Ranges: when the range in backend/pyproject.toml or frontend/package.json already allows a new
+# release (`>=0.162.5`, `^1.65.0`), Dependabot only updates the lockfile (`increase-if-necessary`).
+# The ranges stay as the template wrote them, so `copier update` does not conflict with merged
+# Dependabot updates; a major update still edits its range.
 version: 2
 
 updates:
   - package-ecosystem: uv
     directory: /backend
+    versioning-strategy: increase-if-necessary
     schedule:
       interval: weekly
       day: monday
@@ -23,6 +29,7 @@ updates:
 
   - package-ecosystem: npm
     directory: /frontend
+    versioning-strategy: increase-if-necessary
     schedule:
       interval: weekly
       day: monday

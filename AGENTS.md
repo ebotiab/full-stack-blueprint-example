@@ -120,6 +120,9 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
   fails to resolve, so pick an older one. Exempting a package for an urgent fix needs the user's
   go-ahead: `exclude-newer-package = { <name> = false }` in `backend/pyproject.toml`, or
   `npm install --min-release-age=0 <name>@<version>` in `frontend/`.
+  Dependabot's updates within a range only change the lockfiles. Raise a range in
+  `backend/pyproject.toml` or `frontend/package.json` only when the code needs the newer version:
+  the template owns those lines, and `copier update` conflicts where both sides changed one.
 
 ## Deploy
 
