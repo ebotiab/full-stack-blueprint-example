@@ -1,37 +1,62 @@
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-}
+/* Tailwind CSS 4: no config file; themes and plugins go here, in CSS (https://tailwindcss.com/docs).
+   Components are styled with utility classes in className. The rules below only give the plain
+   elements of the generated pages (main, forms, buttons) a base look, in one place. */
+@import 'tailwindcss';
 
-main {
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 2rem 1rem;
-}
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
 
-time {
-  opacity: 0.7;
-  font-size: 0.875em;
-}
+  body {
+    @apply bg-white text-zinc-900 antialiased dark:bg-zinc-950 dark:text-zinc-100;
+  }
 
-header {
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-  justify-content: flex-end;
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: 1rem 1rem 0;
-}
+  main {
+    @apply mx-auto max-w-2xl px-4 py-10;
+  }
 
-form {
-  display: grid;
-  gap: 0.75rem;
-  max-width: 20rem;
-}
+  h1 {
+    @apply mb-6 text-2xl font-semibold tracking-tight;
+  }
 
-label {
-  display: grid;
-  gap: 0.25rem;
+  li {
+    @apply py-1;
+  }
+
+  time {
+    @apply text-sm text-zinc-500 dark:text-zinc-400;
+  }
+
+  [role='alert'] {
+    @apply text-sm text-red-600 dark:text-red-400;
+  }
+
+  header {
+    @apply mx-auto flex max-w-2xl items-baseline justify-end gap-3 px-4 pt-4 text-sm;
+  }
+
+  form {
+    @apply grid max-w-sm gap-4;
+  }
+
+  label {
+    @apply grid gap-1 text-sm font-medium;
+  }
+
+  input {
+    @apply rounded-md border border-zinc-300 bg-transparent px-3 py-2 text-base font-normal dark:border-zinc-700;
+  }
+
+  button {
+    @apply cursor-pointer rounded-md bg-zinc-900 px-3 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300;
+  }
+
+  button[type='button'] {
+    @apply bg-transparent text-zinc-600 underline hover:bg-transparent dark:bg-transparent dark:text-zinc-400;
+  }
+
+  output {
+    @apply text-sm text-green-700 dark:text-green-400;
+  }
 }
