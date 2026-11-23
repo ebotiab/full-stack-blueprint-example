@@ -136,3 +136,7 @@ or change cloud services without the user's explicit go-ahead.
 The project can take later improvements of its template: with a clean worktree, run
 `copier update --defaults` (add `--vcs-ref=HEAD` for the template's latest commit), resolve any
 conflict markers, run `make setup` and `make check`, and open a pull request with the result.
+Read the template's release notes first, from the project's version (`_commit` in
+`.copier-answers.yml`) to the latest; the template's repository is `_src_path` there. They name any
+new default the project would take and the `--data` that keeps the old behavior: tell the user
+before taking one.
