@@ -14,6 +14,7 @@ answers and is only changed by `copier update` (see "Template updates").
   - `src/my_project/db/`: the connection pool (`pool.py`), the migration runner (`migrate.py`) and the SQL migrations (`migrations/NNNN_name.sql`).
   - `src/my_project/auth/`: sign-in. Accounts, sessions and API keys in PostgreSQL (`0002_auth.sql`), the `CurrentUser`/`AdminUser` dependencies (`deps.py`) and `/api/auth/*` (`routes.py`). The package docstring lists its invariants.
   - `src/my_project/settings.py`: configuration from environment variables prefixed `MY_PROJECT_`; defaults work locally.
+  - `src/my_project/agent/`: an LLM agent built with Pydantic AI. The agent, its tools and the limits of one run in `assistant.py`; the model from `MY_PROJECT_AI_MODEL` in `model.py`; `POST /api/agent` in `routes.py`.
   - `src/my_project/observability.py`: Logfire set-up and the deployed commit. `obs.py`: production status from traces.
   - `src/my_project/cli.py`: the `my-project` command (`migrate`, `users`, `api-keys`, `openapi`, `obs status`).
   - `openapi.json`: the API contract, generated (`make types`). Committed.
@@ -31,7 +32,12 @@ answers and is only changed by `copier update` (see "Template updates").
   Its `routes` rule adds `x-origin-secret` (Vercel variable ORIGIN_SECRET) to every proxied request;
   with `MY_PROJECT_ORIGIN_SECRET` set to the same value, the API answers 403 to /api requests that skip
   Vercel (`api/main.py`, `only_through_vercel`). Scripts then call the API at the visor's domain.
-- `.agents/skills/`: procedures for agents (`.claude/skills` links here). `.vscode/`: editor settings that match the checks.
+- `.agents/skills/`: skills for agents (`.claude/skills` links here). The project's own procedures
+  (`change-the-api`, `ship-a-change`) are directories; `fastapi`, `typer`,
+  `building-pydantic-ai-agents`, `logfire-evals`, `logfire-gateway` and
+  `logfire-instrumentation` are links to the skills those libraries ship in `backend/.venv`, so they
+  follow the installed version (`make setup` creates their targets, `make check` checks them). Never
+  edit a linked skill. `.vscode/`: editor settings that match the checks.
 
 ## Commands
 
@@ -115,8 +121,34 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
   never goes in JSON, tokens are stored hashed, no GET changes state, a cookie request that
   changes state passes `check_same_origin`. `0002_auth.sql` never changes: extend the tables in a
   new migration. Accounts are created with the CLI (`users create`); there is no sign-up route.
+- **The agent.** Agent code lives in `agent/`: instructions and tools in `assistant.py` (more
+  agents next to it), the model only from `MY_PROJECT_AI_MODEL` and the provider's own key variable, never
+  a key in code. The agent is built without a model, so the API starts without a key and
+  `/api/agent` answers 503 until one is set. Every run passes `assistant.LIMITS`. Tests never call
+  a real model (`tests/conftest.py` blocks it): use Pydantic AI's `TestModel` or `FunctionModel`,
+  as `tests/test_agent.py` does. The route needs a signed-in user (`CurrentUser`).
+  The `building-pydantic-ai-agents` skill has the patterns; Logfire is already set up for the
+  agent (`instrument_agent` in `observability.py`).
 - **Configuration.** New settings go in `settings.py` with a local default and the `MY_PROJECT_` prefix,
   and in `backend/.env.example`. Secrets never enter the repository; everything runs locally without credentials.
+- **Library skills are generic; this file wins.** Where a linked library skill and this file or
+  the project's own skills disagree, follow this project. Known differences: the `fastapi` skill
+  runs the app with `fastapi dev` (here `make dev`) and suggests FastAPI's native OpenTelemetry,
+  but Logfire traces the requests here (`observability.py`);
+  it suggests SQLModel, but queries here are plain SQL with asyncpg ("SQL, no ORM");
+  it presents FastAPI Cloud as the way to deploy, but this project deploys to Render ("Deploy");
+  it recommends ty, but the type checker here is pyright;
+  `logfire-instrumentation` suggests `logfire run` and its own `configure()`, but Logfire is
+  configured once in `observability.py` (add `instrument_*()` calls there). Skip its first and last
+  steps, signing in (`whoami`, `auth`, `projects`) and checking that data reached Logfire: work on
+  the code without signing in, verify with pytest (tests never send) and, after a deploy, with
+  `obs status`. Logfire accounts, projects and tokens are for the user.
+  `building-pydantic-ai-agents`, `logfire-evals` and `logfire-gateway` start with a model in
+  `Agent(...)`, `logfire.configure()` next to the agent and Logfire or Gateway sign-in
+  (`logfire-cli auth`, `whoami`, keys), and say not to use `send_to_logfire='if-token-present'`:
+  here the agent has no model of its own (`MY_PROJECT_AI_MODEL`), Logfire is configured once in
+  `observability.py` with `if-token-present` on purpose (nothing is sent without a token), and
+  keys are for the user.
 - **No repeated work.** Read what the task needs, not every file. Run long commands (`make check`,
   Playwright) once at the end, in the background if your tool allows it, and do not spend turns
   saying they are still running.
@@ -134,7 +166,7 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
 ## Deploy
 
 The API runs on Render (Docker, Frankfurt, free plan) from `render.yaml`. Migrations run when it
-starts (`MY_PROJECT_MIGRATE_ON_START`, on by default here): the free plan has no pre-deploy step. Production PostgreSQL is Neon (EU region). Logfire receives the traces when `LOGFIRE_TOKEN` is set. The first administrator is created with the CLI against the production database (README, "Accounts").
+starts (`MY_PROJECT_MIGRATE_ON_START`, on by default here): the free plan has no pre-deploy step. Production PostgreSQL is Neon (EU region). Logfire receives the traces when `LOGFIRE_TOKEN` is set. The agent needs its provider's key on the platform (`ANTHROPIC_API_KEY` for the default model). The first administrator is created with the CLI against the production database (README, "Accounts").
 The one-time manual steps (accounts, secrets, variables) are in the README, "Deploy". Never create
 or change cloud services without the user's explicit go-ahead.
 

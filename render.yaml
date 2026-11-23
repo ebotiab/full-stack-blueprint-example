@@ -22,3 +22,7 @@ services:
       # Logfire write token of the project. Without it the API runs but sends no traces.
       - key: LOGFIRE_TOKEN
         sync: false
+      # The agent's model key (or the variable of the provider in MY_PROJECT_AI_MODEL). Without it,
+      # /api/agent answers 503.
+      - key: ANTHROPIC_API_KEY
+        sync: false

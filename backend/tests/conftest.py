@@ -6,9 +6,14 @@ from urllib.parse import urlsplit
 
 import asyncpg
 import pytest
+from pydantic_ai import models
 
 from my_project.db.pool import connect
 from my_project.settings import PREFIX, get_settings
+
+#: No test reaches a real model: a request to one raises instead of spending. Tests use
+#: Pydantic AI's TestModel or FunctionModel (pydantic_ai.models.test, .function) instead.
+models.ALLOW_MODEL_REQUESTS = False
 
 #: Integration tests run against a real PostgreSQL database: `make test` and the CI set this
 #: variable to a throwaway database (`<package>_test`, or `wt_<name>_test` in a git worktree:

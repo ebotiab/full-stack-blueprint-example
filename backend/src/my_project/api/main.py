@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from .. import __version__
+from ..agent import routes as agent_routes
 from ..auth import routes as auth_routes
 from ..db.migrate import migrate
 from ..db.pool import Database, connect
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
     app.add_middleware(BaseHTTPMiddleware, dispatch=only_through_vercel)
     app.add_middleware(BaseHTTPMiddleware, dispatch=no_store_by_default)
     app.include_router(routes.router, prefix="/api")
+    app.include_router(agent_routes.router, prefix="/api")
     app.include_router(auth_routes.router, prefix="/api")
     return app
 

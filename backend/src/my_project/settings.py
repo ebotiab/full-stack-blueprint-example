@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     #: (frontend/vercel.json, from the Vercel variable ORIGIN_SECRET). When set, the API refuses
     #: /api requests without it: only the visor's domain reaches the API. Empty: not checked.
     origin_secret: str = ""
+    #: The agent's model (agent/), as Pydantic AI names it: `provider:model`. Its key is the
+    #: provider's own variable: ANTHROPIC_API_KEY, OPENAI_API_KEY, or PYDANTIC_AI_GATEWAY_API_KEY for
+    #: `gateway/…` models. Without it, /api/agent answers 503.
+    ai_model: str = "anthropic:claude-opus-5-5"
+    #: Whether Logfire traces keep the text of questions and answers. Without sign-in the route is
+    #: public, so visitors' text reaches the traces: set it to false if that must not happen.
+    agent_trace_content: bool = True
     #: The visor's origins, comma-separated (`https://my-app.vercel.app`). Only browsers that do not
     #: send `Sec-Fetch-Site` (from before 2023) need them: see `auth/deps.py`, `check_same_origin`.
     auth_public_origins: Annotated[list[str], NoDecode] = Field(default_factory=list)

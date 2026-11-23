@@ -9,7 +9,12 @@ dependencies = [
     "fastapi>=0.162.5",
     "httpx>=0.28.1",
     "logfire[asyncpg,fastapi,httpx]>=5.6.0",
+    # The agent (agent/): Pydantic AI with the Anthropic and OpenAI providers only (the full
+    # `pydantic-ai` brings every provider, too heavy for serverless functions).
+    "pydantic-ai-slim[anthropic,openai]>=2.68.0",
     "pydantic-settings>=2.16.2",
+    # Loads the model provider's key from backend/.env into the environment (agent/model.py).
+    "python-dotenv>=1.2.4",
     # Argon2id password hashing (auth/passwords.py).
     "pwdlib[argon2]>=0.4.0",
     "typer>=0.29.1",

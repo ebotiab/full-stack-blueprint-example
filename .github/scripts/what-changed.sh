@@ -8,7 +8,9 @@
 #   git diff --name-only --no-renames HEAD^1 HEAD | .github/scripts/what-changed.sh
 #
 # Why each rule:
-# - docs/, the root's .md files, .vscode/, .claude/ and .agents/ are not part of any check.
+# - docs/, the root's .md files, .vscode/ and .claude/ are not part of any check.
+# - .agents/ holds the links to the library skills in backend/.venv, which `make check-backend`
+#   checks (scripts/check-skills.sh).
 # - backend/openapi.json is the contract: the backend checks it matches the code and the visor
 #   checks its generated types match it, so it runs both.
 # If you add a check that reads a file from the other half, add a rule here.
@@ -22,7 +24,8 @@ while IFS= read -r path; do
   [ -z "$path" ] && continue
   files=$((files + 1))
   case "$path" in
-    docs/* | .vscode/* | .claude/* | .agents/*) ;;
+    docs/* | .vscode/* | .claude/*) ;;
+    .agents/*) backend=true ;;
     backend/openapi.json) backend=true; frontend=true ;;
     backend/*) backend=true ;;
     frontend/*) frontend=true ;;
