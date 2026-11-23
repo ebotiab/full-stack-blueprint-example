@@ -7,16 +7,20 @@
 # applies wherever dependencies are resolved, so every update Dependabot opens can be locked:
 # uv (`exclude-newer` in backend/pyproject.toml) and npm (`min-release-age` in frontend/.npmrc).
 #
-# Ranges: when the range in backend/pyproject.toml or frontend/package.json already allows a new
-# release (`>=0.162.5`, `^1.65.0`), Dependabot only updates the lockfile (`increase-if-necessary`).
-# The ranges stay as the template wrote them, so `copier update` does not conflict with merged
-# Dependabot updates; a major update still edits its range.
+# Ranges: the template owns the version ranges in backend/pyproject.toml and frontend/package.json.
+# Dependabot leaves them as they are, so `copier update` does not conflict with its merged updates.
+# - uv: only uv.lock changes (`lockfile-only`). Every backend range is a lower bound (`>=0.162.5`),
+#   so each release, major ones included, still arrives. Dependabot passes no other strategy to
+#   uv (https://github.com/dependabot/dependabot-core/issues/16112). uv_build's range is not in
+#   uv.lock: it moves with the template.
+# - npm: only package-lock.json changes while the range allows the release (`^1.65.0`,
+#   `increase-if-necessary`); a major update edits its range.
 version: 2
 
 updates:
   - package-ecosystem: uv
     directory: /backend
-    versioning-strategy: increase-if-necessary
+    versioning-strategy: lockfile-only
     schedule:
       interval: weekly
       day: monday
