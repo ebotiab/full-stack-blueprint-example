@@ -5,6 +5,7 @@ from collections.abc import AsyncIterator
 
 import asyncpg
 import httpx
+import httpx2
 import pytest
 from asgi_lifespan import LifespanManager
 from fastapi import HTTPException
@@ -229,13 +230,13 @@ async def test_gateway_model_pins_us_route_and_disables_transport_retries(
     provider = TracerProvider()
     provider.add_span_processor(SimpleSpanProcessor(exporter))
     monkeypatch.setattr(demo_gateway, "_TRACER", provider.get_tracer("demo-test"))
-    received: list[httpx.Request] = []
+    received: list[httpx2.Request] = []
 
-    def upstream(request: httpx.Request) -> httpx.Response:
+    def upstream(request: httpx2.Request) -> httpx2.Response:
         received.append(request)
-        return httpx.Response(200, json={"object": "list", "data": []})
+        return httpx2.Response(200, json={"object": "list", "data": []})
 
-    client = GatewayClient(transport=httpx.MockTransport(upstream))
+    client = GatewayClient(transport=httpx2.MockTransport(upstream))
     try:
         model = demo_chat.get_chat_model(client)
         async with model:

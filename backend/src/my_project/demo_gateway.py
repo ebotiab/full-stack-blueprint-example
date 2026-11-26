@@ -3,7 +3,7 @@
 from collections.abc import AsyncIterator
 from typing import Any
 
-import httpx
+import httpx2
 from opentelemetry import trace
 from opentelemetry.sdk.trace.id_generator import RandomIdGenerator
 
@@ -11,8 +11,8 @@ _TRACER = trace.get_tracer("my-project.demo-gateway")
 _IDS = RandomIdGenerator()
 
 
-class GatewayClient(httpx.AsyncClient):
-    async def send(self, request: httpx.Request, **kwargs: Any) -> httpx.Response:
+class GatewayClient(httpx2.AsyncClient):
+    async def send(self, request: httpx2.Request, **kwargs: Any) -> httpx2.Response:
         # Only send telemetry fields we select. HTTP exceptions can contain response bodies.
         with _TRACER.start_as_current_span(
             "Logfire AI Gateway request",
@@ -30,7 +30,7 @@ class GatewayClient(httpx.AsyncClient):
             return response
 
 
-async def suppress_gateway_header_capture(request: httpx.Request) -> None:
+async def suppress_gateway_header_capture(request: httpx2.Request) -> None:
     # Runs after Pydantic AI injects its propagation headers. The managed Gateway honors
     # the W3C sampling bit. Its native spans would otherwise store upstream Set-Cookie.
     ctx = trace.get_current_span().get_span_context()
