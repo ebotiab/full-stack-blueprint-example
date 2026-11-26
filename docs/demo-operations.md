@@ -154,3 +154,28 @@ visitor traces automatically. Links can stop working at expiration, revocation o
 retention; even “Never” does not extend retention. To renew: generate another synthetic run,
 review it, create a new expiring link, test anonymously and replace the documented link.
 No public trace has yet been verified for this chat; the safe in-page explanation is available.
+
+## Implementation checkpoint
+
+The chat implementation passed all fourteen `make check` steps: 77 backend/PostgreSQL tests,
+28 desktop/mobile browser tests and two frontend unit tests. `make coverage` reports 96% for
+the chat module; the unexecuted lines are defensive impossible-row guards. The model tests are
+offline doubles and do not validate a real Gateway route.
+
+An isolated clone passed `scripts/update-example.sh HEAD` at template `65662c3` (v0.11.0).
+To exercise actual regeneration too, `copier update --defaults --vcs-ref=HEAD --data description=…`
+changed the description only in that disposable clone. Copier reported the expected README
+conflict beside the local Live demo insertion: keep the entire local demo section and apply the
+new generated description below it. All chat modules, guards, migration, proxy and deployment
+settings survived. After resolving that text conflict, `make setup`, all fourteen checks and
+another clean `scripts/update-example.sh HEAD` passed. No template change was needed, and this
+does not promise conflict-free future upgrades.
+
+The operator confirmed that the replacement Gateway-capable key was saved for **future cloud
+sessions**. This running environment still has only the earlier `LOGFIRE_READ_TOKEN`: Logfire
+queries and `obs status` work, but the public management API returns 401. Continue activation
+in a session created with the updated environment. Use the existing key through its secret
+binding; do not repeat OAuth setup or put its value in chat. Public Gateway management schema:
+`https://logfire-us.pydantic.dev/api/openapi.json`; official API base:
+`https://api-us.pydantic.dev/api/v1/`. A management key is not automatically the project-only
+inference key that should be installed in Render.
