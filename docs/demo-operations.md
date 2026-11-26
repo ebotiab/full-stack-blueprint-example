@@ -142,18 +142,27 @@ and attribute of one trace. [Public Conversations](https://pydantic.dev/docs/log
 currently requires Early Access on Growth/Enterprise; no plan upgrade is needed for this demo's
 safe execution summary. Project visibility `public` means within the organization, not anonymous.
 
-The [public example](https://full-stack-blueprint-example.vercel.app/chat-trace.html) is a
-manually reviewed static excerpt of a real production trace. It requires no account and executes
-no scripts or Logfire queries. The native trace includes database role and host metadata, so the
-public page contains only the selected timings, relationships and metrics. No visitor trace
-is automatically published.
+The demo and README open an eight-span example in the official Logfire Public Trace viewer.
+Anyone with the link can select spans and inspect their attributes. The operator shared a
+reviewed copy of a real, fictional-data turn. The copy preserves the span durations, parent IDs,
+model usage, reported cost, route and API commit. Its root records the original trace ID. The
+original includes database role and host metadata and stays private. Visitor conversations
+are never shared automatically.
 
-Personal retains source records for 30 days. The static example stays available independently.
-To renew it, run the verifier, query only its synthetic trace IDs, review every span and update
-the example and its commit in a PR. Test the deployed link in a fresh session. If sharing a
-future native trace is appropriate, review **all** its attributes first, use its **Private**
-control to create an expiring link and test that link anonymously. Expiration, revocation or
-source-data retention can end access to a native link.
+The [timing summary](https://full-stack-blueprint-example.vercel.app/chat-trace.html) remains
+available after the Logfire link expires. Personal retains the underlying records for 30 days.
+The configured link expiry or revocation can close access sooner. Check the link expiry in
+**Project settings → Public traces**.
+
+To renew the example, run the live verifier with fictional input. Query its exact trace ID and
+create a reviewed copy in the same project with a new trace ID. Preserve span timing and
+parent relationships. Include only the public metrics and identifiers described above.
+Inspect every span, event and resource attribute before sharing. In Logfire, select the copy's
+root span, choose **Private → Create**, and copy the public URL. Update the demo guide, README
+and timing summary in one PR. Open the new link in a fresh browser session, expand the agent
+and inspect a model call and the SQL span before merging. After deployment, run
+`node scripts/verify-live-demo.mjs --public-trace` to check the public links without consuming
+a chat attempt.
 
 ## Implementation checkpoint
 

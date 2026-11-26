@@ -11,7 +11,10 @@ Pydantic AI reads four fictional PostgreSQL rows and answers through Groq Free
 response** for your timing, tool use, tokens and reported cost. Render Free can take a minute to wake up.
 
 [How the chat works](https://full-stack-blueprint-example.vercel.app/#observability) ·
-[Explore a reviewed production trace](https://full-stack-blueprint-example.vercel.app/chat-trace.html)
+[Explore the example trace in Logfire](https://logfire-us.pydantic.dev/public-trace/a52caeb8-f7f4-4851-a620-22e4e1c4c0f7?spanId=0a438f28431cf17a) ·
+[Timing summary](https://full-stack-blueprint-example.vercel.app/chat-trace.html)
+
+Open the Logfire link without an account and select a span to inspect a reviewed copy of a real chat turn.
 
 Each visitor session gets five attempts. Everyone shares 20 per UTC day and 100 per UTC month,
 including failed runs. The chat remembers the previous exchange for 30 minutes. Signing out
