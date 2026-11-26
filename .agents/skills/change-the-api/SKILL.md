@@ -1,6 +1,7 @@
 ---
 name: change-the-api
-description: Add or change an API route in My Project end to end — migration, route, pytest test, regenerated OpenAPI schema, typed client in the visor and a Playwright test. Use it for any task that changes what the API returns or accepts.
+description: >-
+  Add or change an API route in My Project end to end — migration, route, pytest test, regenerated OpenAPI schema, typed client in the visor and a Playwright test. Use it for any task that changes what the API returns or accepts.
 ---
 
 # Change the API

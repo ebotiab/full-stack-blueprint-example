@@ -25,7 +25,16 @@ agent (`POST /api/agent`) answers 503 until you put a model key in `backend/.env
 for the default model, `MY_PROJECT_AI_MODEL` to change it).
 Optional local settings: `backend/.env.example` and `frontend/.env.example`.
 Several git worktrees of the project can run `make setup` and `make check` at the same time: they
-share the local PostgreSQL, and each worktree gets its own databases in it (`scripts/db-name.sh`).
+share one local PostgreSQL. Run `bash scripts/db-name.sh` to see this checkout's development
+database. Its disposable database has the same name followed by `-test`. Pytest checks the name
+and the database comment before it empties the public schema. For a separately managed test
+database ending in `-test` or `_test`, set its PostgreSQL database comment to
+`MY_PROJECT_TEST_DATABASE_URL` only after confirming it is disposable.
+
+When updating a project with existing worktrees, `make db-up` moves its own generated URL in
+`backend/.env` to the new database name and reports the previous name. Existing databases keep
+their data. To carry development data forward, dump the previous database and restore it into
+the new development database before running `make setup`. Custom connection URLs are preserved.
 
 ## Everyday commands
 
@@ -121,9 +130,30 @@ npx --min-release-age=7 skills add render-oss/skills --skill render-deploy      
 
 They are read as instructions: look at what a skill says before adding it.
 
+## Commit style
+
+This project uses `commit_style=gitmoji` for commit subjects, PR titles and final squash
+subjects. Use one Unicode emoji followed by a space and an English imperative summary,
+for example `🐛 Reject expired sessions`. The small category list is in `AGENTS.md`. Keep the summary descriptive by itself.
+The `ship-a-change` skill carries the final PR title into the squash commit on `main`.
+This convention does not automate versions or changelogs.
+
+To use messages without emojis, run `copier update --defaults --data commit_style=plain` from a
+clean worktree; to opt into emojis, use `--data commit_style=gitmoji`. Commit the saved answer in
+`.copier-answers.yml` together with the generated instructions. Later updates keep that choice.
+Older projects without the answer take `gitmoji`; pass `--data commit_style=plain` on their first
+update to preserve plain messages. Existing commits are never rewritten.
+
 ## Template updates
 
 This project was generated with [Copier](https://copier.readthedocs.io) from `full-stack-blueprint`.
 To take later improvements: commit or stash your work, run `copier update --defaults`, resolve
 conflicts, then `make setup && make check`. The template's release notes say what each version
 changes (its repository is `_src_path` in `.copier-answers.yml`).
+
+Switching between `sessions` and database-backed `oidc` requires a data migration after either
+sign-in schema has been applied. Before running setup or deploying, restore previously applied
+migration files from Git and remove the newly generated, unapplied sign-in bootstrap. Write a
+new forward migration that preserves account IDs and references. Rehearse account mapping,
+credential enrollment or revocation, and rollback on a restored copy of the database. See
+[Switching sign-in modes with existing accounts](https://github.com/ebotiab/full-stack-blueprint/blob/main/docs/choosing-your-options.md#switching-sign-in-modes-with-existing-accounts).

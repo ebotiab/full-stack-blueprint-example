@@ -2,7 +2,7 @@
 
 import os
 from collections.abc import AsyncIterator, Iterator
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 import asyncpg
 import pytest
@@ -16,13 +16,31 @@ from my_project.settings import PREFIX, get_settings
 models.ALLOW_MODEL_REQUESTS = False
 
 #: Integration tests run against a real PostgreSQL database: `make test` and the CI set this
-#: variable to a throwaway database (`<package>_test`, or `wt_<name>_test` in a git worktree:
-#: scripts/db-name.sh). Without it they are skipped.
+#: variable to a database marked as disposable by db-up or CI. Without it they are skipped.
 TEST_DATABASE_ENV = f"{PREFIX}TEST_DATABASE_URL"
 
 
 def test_database_url() -> str | None:
     return os.environ.get(TEST_DATABASE_ENV)
+
+
+async def reset_test_schema(conn: asyncpg.Connection, name: str) -> None:
+    # Check the connected database itself. A URL or a name alone does not grant permission
+    # to clear its schema. A legacy or custom database needs an explicit opt-in (README).
+    disposable = await conn.fetchval(
+        """
+        SELECT EXISTS (
+            SELECT FROM pg_catalog.pg_database
+            WHERE datname = pg_catalog.current_database() AND datname = $1
+              AND pg_catalog.shobj_description(oid, 'pg_database') = $2
+        )
+        """,
+        name,
+        TEST_DATABASE_ENV,
+    )
+    if not disposable:
+        pytest.fail(f"{name!r} is not marked for {TEST_DATABASE_ENV}. See the project README.")
+    await conn.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
 
 
 @pytest.fixture
@@ -31,12 +49,11 @@ async def db_url() -> str:
     url = test_database_url()
     if url is None:
         pytest.skip(f"{TEST_DATABASE_ENV} is not set")
-    # This fixture empties the database: it refuses one that is not a throwaway database.
-    name = urlsplit(url).path.rpartition("/")[2]
-    if not name.endswith("_test"):
-        pytest.fail(f"{TEST_DATABASE_ENV} must name a database ending in _test, not {name!r}")
+    name = unquote(urlsplit(url).path.removeprefix("/"))
+    if not name.endswith(("-test", "_test")):
+        pytest.fail(f"{TEST_DATABASE_ENV} must name a disposable test database")
     async with connect(url) as conn:
-        await conn.execute("DROP SCHEMA public CASCADE; CREATE SCHEMA public;")
+        await reset_test_schema(conn, name)
     return url
 
 

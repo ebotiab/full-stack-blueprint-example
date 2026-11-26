@@ -69,12 +69,13 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
 
 - **Small pull requests.** One task per branch and per pull request, against `main`. The
   description says what changes, why, what deserves attention in review and which checks passed.
-  Commit messages are one sentence that describes the result.
+  Commit subjects, PR titles and final squash subjects follow "Commit style" below.
 - **Merge on green.** When the pull request is complete (final description, nothing left to
   decide), mark it with `gh pr merge --squash --auto`: GitHub merges it as soon as the required
   checks `Backend` and `Frontend` pass, and never if they fail. If the CI fails, fix and push; the
   mark stays. If the checks already passed, `--auto` refuses ("clean status"): merge with
-  `gh pr merge --squash`. This holds only while `main` requires those checks (README, "Deploy"): the
+  `gh pr merge --squash`. In every case, pass `--subject "$pr_title"` with the final PR title
+  as described in `ship-a-change`. This holds only while `main` requires those checks (README, "Deploy"): the
   `ship-a-change` skill looks before marking and, on an unprotected `main`, waits for the CI itself.
 - **Merging is deploying.** A push to `main` deploys the API (Render waits for the CI) and the visor (Vercel). Nothing is deployed by hand.
 - **Check production after merging.** A task that touches `backend/` ends when production runs the
@@ -105,8 +106,8 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
   CONCURRENTLY`) fails; the docstring of `db/migrate.py` says what to do instead.
 - **Git worktrees.** Several worktrees can run `make setup`, `make check` and the tests at the same
   time. They share the local PostgreSQL, and each worktree has its own databases in it,
-  `wt_<worktree name>` and `wt_<worktree name>_test` (`bash scripts/db-name.sh` prints the first;
-  the main checkout keeps `my_project`). `make db-up` creates them and writes the worktree's
+  a development database named by `bash scripts/db-name.sh` and its disposable `-test` database.
+  The main checkout keeps `my_project` for development. `make db-up` creates them and writes the worktree's
   `MY_PROJECT_DATABASE_URL` to its `backend/.env`, so `make`, the app and the CLI all use them. `make db-down`
   stops PostgreSQL for every checkout. A removed worktree's databases stay: `docker compose exec
   postgres psql -U my_project -l` lists them and `docker compose exec postgres dropdb -U my_project <name>` drops one.
@@ -162,6 +163,42 @@ Single checks while working: `cd backend && uv run pytest tests/test_api.py -k h
   Dependabot's updates within a range only change the lockfiles. Raise a range in
   `backend/pyproject.toml` or `frontend/package.json` only when the code needs the newer version:
   the template owns those lines, and `copier update` conflicts where both sides changed one.
+
+## Commit style
+
+This project's saved Copier answer is `commit_style=gitmoji`. Apply it to every new
+agent-authored commit subject, PR title and final squash subject. Use one concise English
+imperative sentence describing the result, without a trailing period; explain why in the body.
+
+Format: `<emoji> <summary>`, with exactly one Unicode emoji and one space (no `:shortcodes:`).
+Use this small Gitmoji-based vocabulary; choose the main purpose of a mixed change, not every
+file it touches. A feature's tests and docs keep the feature category; separate test-only or
+docs-only changes use their own category.
+
+| Emoji | Purpose | Example |
+| --- | --- | --- |
+| ✨ | Feature, including the initial project | `✨ Add account export` |
+| 🐛 | Bug fix | `🐛 Reject expired sessions` |
+| 📝 | Documentation only | `📝 Explain local setup` |
+| ♻️ | Refactoring without behavior changes | `♻️ Extract session lookup` |
+| ✅ | Tests only | `✅ Cover expired sessions` |
+| 👷 | CI and build workflows | `👷 Run browser tests in CI` |
+| ⬆️ | Dependency upgrades | `⬆️ Upgrade FastAPI` |
+| 🔧 | Configuration and other maintenance | `🔧 Configure the test database` |
+
+The summary must make sense without the emoji: it is a visual cue, not the only explanation.
+
+For the PR and squash, summarize the whole change; individual commits describe their own result.
+Before merging, normalize the final PR title (including bot PRs), explicitly use it as the squash
+subject, and verify the resulting commit on `main`. Do not rewrite existing commits to change
+their style. Describe breaking changes and migration steps in words in the body and release notes.
+This is not Conventional Commits and does not automate versions or changelogs; tools expecting
+`feat:` / `fix:` need a separate project decision and configuration. No commit hook is required.
+
+To change the saved choice, use `copier update --defaults --data commit_style=plain` (without
+emojis) or `--data commit_style=gitmoji`. Commit `.copier-answers.yml` and the rendered instructions;
+future updates keep that answer. Projects without this answer take `gitmoji` on their first update;
+pass `--data commit_style=plain` on that update to retain the previous plain style.
 
 ## Deploy
 

@@ -1,4 +1,4 @@
-"""The My Project API. Every route lives under /api, so the visor and the API can share a domain."""
+"""Every route lives under /api, so the visor and the API can share a domain."""
 
 import hmac
 from collections.abc import AsyncGenerator

@@ -1,4 +1,4 @@
-"""My Project: A FastAPI API with a React visor."""
+"""Application package and installed version."""
 
 from importlib.metadata import PackageNotFoundError, version
 

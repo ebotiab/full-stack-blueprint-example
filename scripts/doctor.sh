@@ -9,7 +9,7 @@ bad() { printf '  FAIL  %s\n        fix: %s\n' "$1" "$2"; problems=$((problems +
 # version_at_least <found> <wanted>: true if found >= wanted (dotted numbers).
 version_at_least() { [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n1)" = "$2" ]; }
 
-echo "Checking tools for My Project"
+printf 'Checking tools for %s\n' 'My Project'
 
 if command -v git >/dev/null 2>&1; then ok "git $(git --version | awk '{print $3}')"
 else bad "git is not installed" "install it from https://git-scm.com/downloads"; fi
