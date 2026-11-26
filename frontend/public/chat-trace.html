@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A reviewed production trace of a Pydantic AI chat using Groq and a read-only PostgreSQL tool."
+    />
+    <title>Inside a real chat turn · My Project</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+        line-height: 1.55;
+      }
+      body {
+        max-width: 54rem;
+        margin: auto;
+        padding: 2rem 1rem 4rem;
+      }
+      h1 {
+        margin-bottom: 0.25rem;
+        font-size: clamp(1.8rem, 5vw, 2.5rem);
+      }
+      h2 {
+        margin-top: 2rem;
+        font-size: 1.25rem;
+      }
+      a {
+        color: inherit;
+        text-underline-offset: 0.2em;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-variant-numeric: tabular-nums;
+      }
+      th,
+      td {
+        text-align: left;
+        vertical-align: top;
+        padding: 0.55rem 0.35rem;
+        border-bottom: 1px solid #8888;
+      }
+      code {
+        overflow-wrap: anywhere;
+      }
+      .timing {
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <nav><a href="/#observability">Return to the live demo</a></nav>
+      <h1>Inside a real chat turn</h1>
+      <p><time datetime="2026-11-26T12:06:02Z">26 November 2026, 12:06 UTC</time></p>
+      <p>
+        A visitor asked the model to summarize fictional messages. The first model call requested
+        the read-only tool. PostgreSQL returned four rows. The second call turned those rows into
+        the answer.
+      </p>
+      <p>
+        <strong>1,567 ms</strong> in the API’s execution summary ·
+        <strong>610 input and 109 output tokens</strong> · <strong>$0.00007845</strong> reported by
+        the Gateway. The dedicated Groq Free account serves the model at zero monetary cost within
+        its quota.
+      </p>
+      <h2>The eight spans recorded in Logfire</h2>
+      <p>
+        A span measures one operation. The parent column shows which operation called it. Durations
+        overlap because each parent includes its children.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Span</th>
+            <th>Parent</th>
+            <th>Duration</th>
+            <th>Observed result</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">API</th>
+            <td>Root</td>
+            <td class="timing">1,471 ms</td>
+            <td>POST /api/demo-chat</td>
+          </tr>
+          <tr>
+            <th scope="row">Agent</th>
+            <td>API</td>
+            <td class="timing">1,465 ms</td>
+            <td>Pydantic AI ran the turn</td>
+          </tr>
+          <tr>
+            <th scope="row">Model call 1</th>
+            <td>Agent</td>
+            <td class="timing">1,024 ms</td>
+            <td>246 input / 32 output tokens</td>
+          </tr>
+          <tr>
+            <th scope="row">Gateway request 1</th>
+            <td>Model call 1</td>
+            <td class="timing">714 ms</td>
+            <td>US Gateway returned HTTP 200</td>
+          </tr>
+          <tr>
+            <th scope="row">Tool</th>
+            <td>Agent</td>
+            <td class="timing">5 ms</td>
+            <td><code>read_demo_messages</code></td>
+          </tr>
+          <tr>
+            <th scope="row">SQL</th>
+            <td>Tool</td>
+            <td class="timing">4 ms</td>
+            <td>SELECT returned four fictional rows</td>
+          </tr>
+          <tr>
+            <th scope="row">Model call 2</th>
+            <td>Agent</td>
+            <td class="timing">372 ms</td>
+            <td>364 input / 77 output tokens</td>
+          </tr>
+          <tr>
+            <th scope="row">Gateway request 2</th>
+            <td>Model call 2</td>
+            <td class="timing">366 ms</td>
+            <td>US Gateway returned HTTP 200</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        The Gateway rows measure the actual HTTP calls from the API. Each model span carries its
+        token counts and cost. The model was <code>openai/gpt-oss-20b</code> on the dedicated BYOK
+        route <code>full-stack-blueprint-example-groq</code>, using OpenAI Chat Completions.
+      </p>
+      <h2>What happened next</h2>
+      <p>
+        A follow-up recalled a fictional label from the first exchange. It took 526 ms and one model
+        call, using 347 input and 28 output tokens. A second browser session signed in as the same
+        visitor, received all five attempts, and could not recall the label.
+      </p>
+      <h2>Source and retention</h2>
+      <p>
+        This static excerpt uses the timings and parent relationships from trace
+        <code>01a217bf98d8787a877829b6e1e72fa3</code>. It was reviewed before publication. The full
+        trace stays in the project for its 30-day retention period. This page stays available until
+        updated or removed. To refresh it, an operator runs another fictional conversation, reviews
+        its spans and publishes the selected metrics through a pull request.
+      </p>
+      <p>
+        <a
+          href="https://github.com/ebotiab/full-stack-blueprint-example/commit/e06b421b0bdef793b7333adb0e585ec18c1a0955"
+          >API commit e06b421</a
+        >
+        ·
+        <a
+          href="https://github.com/ebotiab/full-stack-blueprint-example/blob/main/docs/demo-operations.md"
+          >Demo operations</a
+        >
+      </p>
+    </main>
+  </body>
+</html>

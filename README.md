@@ -5,19 +5,17 @@
 **[Open the live demo](https://full-stack-blueprint-example.vercel.app)** ·
 **[Public API documentation](https://full-stack-blueprint-example.vercel.app/docs)**
 
-Choose **Try the demo** to sign in as a visitor and read four fictional messages from
-PostgreSQL. The free API can take a minute to wake up. Refresh to check your session or
-choose **Sign out** to end it.
+Choose **Try the demo**, select **Read the stored messages and summarize them**, and send it.
+Pydantic AI reads four fictional PostgreSQL rows and answers through Groq Free
+(`openai/gpt-oss-20b`) on the US Logfire AI Gateway. Ask a follow-up and open **Inside this
+response** for your timing, tool use, tokens and reported cost. Render Free can take a minute to wake up.
 
-**The Pydantic AI chat is inactive.** Its dedicated free inference route still needs verification.
-Once enabled, choose **Read the stored messages and summarize them**, send it, then ask a
-follow-up. Open **Inside this response** for the tool calls, tokens, timing and reported cost.
-You can [read how the chat works](https://full-stack-blueprint-example.vercel.app/#observability)
-before signing in.
+[How the chat works](https://full-stack-blueprint-example.vercel.app/#observability) ·
+[Explore a reviewed production trace](https://full-stack-blueprint-example.vercel.app/chat-trace.html)
 
-Visitors have five attempts per session and share 20 per UTC day and 100 per UTC month.
-Failed runs count. Follow-ups use the previous exchange for up to 30 minutes.
-Visitor conversations are never shared automatically.
+Each visitor session gets five attempts. Everyone shares 20 per UTC day and 100 per UTC month,
+including failed runs. The chat remembers the previous exchange for 30 minutes. Signing out
+ends your session. Visitor conversations are never published automatically.
 
 A FastAPI API with a React visor.
 

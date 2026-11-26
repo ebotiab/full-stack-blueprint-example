@@ -61,6 +61,9 @@ test('visitor enters with the public account and sees the demo limitations', asy
   })
   await page.goto('/#observability')
   await expect(page.getByRole('heading', { name: 'How the chat works' })).toBeVisible()
+  await expect(
+    page.getByRole('link', { name: 'Explore a reviewed production trace' }),
+  ).toHaveAttribute('href', '/chat-trace.html')
   await expect(page.getByText(/free API may take about a minute/)).toBeVisible()
   await page.getByRole('button', { name: 'Try the demo' }).click()
   expect(sent).toEqual({ email: 'visitor@example.com', password: 'Explore-the-blueprint!' })

@@ -17,7 +17,7 @@ never put privileged credentials in a `VITE_` variable. The public demo sends Lo
 The public account is created idempotently at API startup with `MY_PROJECT_DEMO_ENABLED=true`.
 It is not an administrator. The public deployment refuses mutations other than signing in,
 ending the caller's own session and `POST /api/demo-chat`. The original `/api/agent` stays blocked.
-The chat is shipped **inactive** until its free Gateway route and telemetry are verified.
+Production enables the chat through its verified Groq Free route. Fresh installations default to inactive.
 Login attempts share the PostgreSQL token bucket (burst of ten, one replenished per minute).
 Do not store private data in this database or reuse this mode for another application.
 
@@ -28,7 +28,7 @@ the intended commit. A frontend-only change can leave Render on the last backend
 its root directory is `backend`.
 
 ```bash
-node scripts/verify-live-demo.mjs
+VERIFY_CHAT=1 node scripts/verify-live-demo.mjs
 cd backend
 uv run my-project obs status --commit <API-commit> --wait 15
 ```
@@ -53,60 +53,44 @@ The update to template HEAD `d9bddc8` was tested with all fourteen checks passin
 
 ## Chat activation and cost (reviewed 2026-11-26)
 
-Pydantic AI 2.68.0 and Logfire 5.6.0 are already installed. No extra AI dependency or hosting
-service is needed. The candidate is Groq Free `openai/gpt-oss-20b` through a **dedicated BYOK
-route** in Logfire Gateway US. It is not a direct Groq call. The route is still unverified in
-this account; do not claim live inference until the activation checks below pass.
+The live API uses Pydantic AI 2.68.0, Logfire 5.6.0 and OpenAI Chat Completions.
+The US route is `https://gateway-us.pydantic.dev/proxy/full-stack-blueprint-example-groq/chat/completions`.
+The project-scoped key authorizes `project:gateway_proxy`. The model catalog and real tool turns
+confirmed `openai/gpt-oss-20b`. The account owner confirmed Groq Free, a single Groq BYOK provider,
+caching disabled on the key and **Include messages** off for the project. Initial native Gateway
+traces showed Groq on attempt one for each call.
 
-- [Groq's official limits](https://console.groq.com/docs/rate-limits) list 30 requests/minute,
-  1,000/day, 8,000 tokens/minute and 200,000/day for this model on Free. Excess returns 429.
-  This is a quota-based free plan, not expiring prepaid credits; account limits and continued
-  model availability still need verification. Do not upgrade the upstream account.
-- [Gateway BYOK](https://pydantic.dev/docs/logfire/manage/ai-gateway/byok-providers/) is available
-  on Personal (up to three providers). The upstream provider bills usage. Built-in Gateway
-  providers instead draw prepaid balance; promotional credits are temporary and are not a
-  permanent free tier. Their activation can request a payment method or auto-recharge: do not enable either.
-- [Gateway spending limits](https://pydantic.dev/docs/logfire/manage/ai-gateway/spending-policies/)
-  accept whole USD; zero blocks requests. They do not establish a cents-level hard cap.
-  Pydantic AI's token/cost checks occur after responses and cannot establish one either.
-- The [Groq paid list price](https://console.groq.com/docs/models) is $0.075/M input tokens and
-  $0.30/M output tokens. A typical two-call turn with 2,000 total input and 512 total output
-  tokens would be about $0.000304. This is an estimate, **not an approved budget or enforced
-  paid limit**. Paid use is disabled; a separate reviewed reservation budget (proposed $0.05/month)
-  and explicit owner approval would be required before enabling any paid route.
-- Render Free, Neon Free and the existing Vercel deployment are reused. No plans, credits,
-  auto-recharge or new paid services are enabled. Logfire's free observability allowance is
-  separate from model billing; inspect the actual project plan and ingest/query limits.
+Groq publishes 30 requests/minute, 1,000/day, 8,000 tokens/minute and 200,000/day for this
+model on Free. The provider response confirmed 1,000 requests/day and 8,000 tokens/minute.
+Groq documents HTTP 429 at exhaustion. The verification stayed inside the upstream quota.
+The free plan is quota-based. There is no paid fallback or prepaid-credit dependency.
+The price estimate in a response is useful for comparing turns. Monetary inference cost on
+the verified free account is $0. Paid inference would require a new budget design and explicit
+approval. [Groq rate limits](https://console.groq.com/docs/rate-limits) ·
+[Gateway BYOK](https://pydantic.dev/docs/logfire/manage/ai-gateway/byok-providers/)
 
-Activation, only for this example:
+### Reconnect or rotate
 
-1. Use the existing project `ebotiab/full-stack-blueprint-example` in US. With authorized
-   Gateway management access, inspect current providers, plan, balance, credits/expiry and
-   key/project limits. Preserve every other project's configuration.
-2. If needed, connect an independently verified **Free** Groq account as a dedicated supported
-   BYOK provider and a route with only that provider, no fallback or Gateway retry. Verify
-   `openai/gpt-oss-20b` is served by the route. Never silently select a paid built-in provider.
-3. In **Gateway → Settings → Telemetry**, select this project and turn **Include messages** off.
-   It defaults to on. Allow up to 60 seconds for the setting to propagate. Disable response caching
-   for the inference key. Check Groq’s own [data controls](https://console.groq.com/docs/your-data)
-   separately. Its default policy permits temporary retention for reliability or abuse investigations.
-   The app also sends `Cache-Control: no-store` on each model call.
-   Verify each model span has a Gateway client span and the trace has zero native
-   `pydantic-ai-gateway` spans. Review the recorded attributes for content and credentials.
-   Review headers and baggage separately. [Gateway data retention](https://pydantic.dev/docs/logfire/manage/ai-gateway/data-retention/)
-4. Create/reuse a project-only inference key with minimum permissions. Store its value only in
-   Render's `PYDANTIC_AI_GATEWAY_API_KEY`. Store the route slug in `MY_PROJECT_DEMO_GATEWAY_ROUTE`.
-   The application pins the US base `https://gateway-us.pydantic.dev/proxy`, OpenAI chat protocol,
-   and model; the effective URL is `/proxy/<verified-route>/chat/completions`.
-5. Keep `MY_PROJECT_DEMO_CHAT_ENABLED=false` until the route's cost and capture controls are
-   verified. Then enable it, test one synthetic turn and its continuation, and query the new
-   trace using `LOGFIRE_READ_TOKEN` from the operator environment. Never install that read token
-   in Vercel, frontend artifacts or a public query API. No OAuth wizard is required for valid keys.
-6. Run the browser verifier with `VERIFY_CHAT=1`, then `obs status` for the served API commit.
-   The verifier spends three shared attempts on fictional data. It requires the first session
-   to recall a fresh label and checks that a second signed-in session cannot recall it.
-   Record the verified route, account quotas, measured tokens/cost and reviewed trace link here,
-   and remove the README's inactive notice only after that verification.
+1. Keep `MY_PROJECT_DEMO_CHAT_ENABLED=false` while changing provider or capture settings.
+   In the US organization `ebotiab`, select its dedicated endpoint and verify a single
+   active Groq Free upstream with no paid fallback or retries. Confirm the model in its catalog.
+   Personal supports three BYOK providers through the dashboard. The public provider and
+   endpoint administration API returned 403 for this plan.
+2. In **Gateway → Settings → Telemetry**, select `full-stack-blueprint-example` and turn off
+   **Include messages**. Allow up to 60 seconds for propagation. Disable response caching
+   on the inference key. Recheck the upstream account's retention terms.
+   [Gateway retention](https://pydantic.dev/docs/logfire/manage/ai-gateway/data-retention/) ·
+   [Groq data controls](https://console.groq.com/docs/your-data)
+3. Place the project-only inference key in Render’s `PYDANTIC_AI_GATEWAY_API_KEY` and its route
+   slug in `MY_PROJECT_DEMO_GATEWAY_ROUTE`. Render uses `LOGFIRE_TOKEN` for telemetry write.
+   Keep `LOGFIRE_READ_TOKEN` in the operator environment. These three roles are independent.
+4. After verifying the free upstream and privacy controls, enable the chat and verify the
+   release with the commands above. The browser verifier spends three shared attempts and
+   prints only execution metrics. Add `VERIFY_SESSION_CAP=1` to spend three additional attempts
+   and verify that the sixth request in one session returns 429. Query its exact trace IDs in a short time window. Check span
+   parents, served commit, rows, tokens, cost and both HTTP response codes. Expect one
+   `my-project.demo-gateway` client span per model call and zero native `pydantic-ai-gateway`
+   spans. Switch the chat off if the destination, billing or telemetry differs.
 
 ## Effective limits and isolation
 
@@ -158,12 +142,18 @@ and attribute of one trace. [Public Conversations](https://pydantic.dev/docs/log
 currently requires Early Access on Growth/Enterprise; no plan upgrade is needed for this demo's
 safe execution summary. Project visibility `public` means within the organization, not anonymous.
 
-After the real synthetic verification, review the **entire** trace, then create a public trace
-link under its Private/share control, set an expiry and test it in a clean browser. Do not share
-visitor traces automatically. Links can stop working at expiration, revocation or source-data
-retention; even “Never” does not extend retention. To renew: generate another synthetic run,
-review it, create a new expiring link, test anonymously and replace the documented link.
-No public trace has yet been verified for this chat; the safe in-page explanation is available.
+The [public example](https://full-stack-blueprint-example.vercel.app/chat-trace.html) is a
+manually reviewed static excerpt of a real production trace. It requires no account and executes
+no scripts or Logfire queries. The native trace includes database role and host metadata, so the
+public page contains only the selected timings, relationships and metrics. No visitor trace
+is automatically published.
+
+Personal retains source records for 30 days. The static example stays available independently.
+To renew it, run the verifier, query only its synthetic trace IDs, review every span and update
+the example and its commit in a PR. Test the deployed link in a fresh session. If sharing a
+future native trace is appropriate, review **all** its attributes first, use its **Private**
+control to create an expiring link and test that link anonymously. Expiration, revocation or
+source-data retention can end access to a native link.
 
 ## Implementation checkpoint
 
@@ -186,19 +176,14 @@ returned four PostgreSQL rows. A follow-up recalled a fictional label in its own
 second session could not recall it. Before the client-side privacy change, Logfire showed the
 US Gateway calling Groq once per model request. **Include messages** removed the bodies. Its
 native spans still stored an upstream Cloudflare response cookie, so those traces must stay
-private and expire under the 30-day Personal retention policy. The shareable example must come
-from a fresh run after the change. The visitor's session cookie never went to the Gateway.
+private and expire under the 30-day Personal retention policy. The public example uses a fresh run after the change. The visitor's session cookie never went to the Gateway.
 
-The US public API confirmed the organization uses **Personal** and Gateway is enabled.
-The operator credential can read the project and its Gateway spending limits. `obs status`
-found PR #24's production commit with no recorded errors. A bounded query returned its
-`api started` records. These checks verify telemetry from Render. Live inference still
-requires a project-only credential and a verified route.
-
-On this plan, listing providers or endpoints via the [public management API](https://api-us.pydantic.dev/api/docs)
-returns HTTP 403 with a plan restriction. Use the organization-admin **Gateway → Providers**
-screen to connect Groq Free and create the dedicated endpoint. Confirm its one upstream
-and the exact account limits before enabling the chat.
+The US public API confirmed the Personal plan. Logfire received production startup records and
+the served commit passed `obs status`. The account owner installed the project inference key in
+Render. After the privacy change, the browser verifier completed both sessions. Logfire returned
+eight spans for the tool turn, four for its follow-up and eight for the other session. The
+HTTP client spans carried the route, host, method, status and agent correlation metadata. The
+review found no cookies, credentials or conversation text in these traces.
 
 Personal includes 10 million telemetry records per month across the organization with no
 paid overage. Crossing the allowance restricts trace views and can eventually drop new
