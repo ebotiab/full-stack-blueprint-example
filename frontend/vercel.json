@@ -32,7 +32,7 @@
       "source": "/api/:path*",
       "destination": "https://full-stack-blueprint-example-api.onrender.com/api/:path*"
     },
-    { "source": "/((?!assets/|_vercel/).*)", "destination": "/index.html" }
+    { "source": "/((?!assets/|_vercel/|chat-trace[.]html$).*)", "destination": "/index.html" }
   ],
   "headers": [
     {

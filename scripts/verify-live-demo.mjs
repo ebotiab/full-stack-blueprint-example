@@ -82,6 +82,7 @@ try {
   assert.deepEqual(await (await context.request.get(`${demoUrl}/api/messages`)).json(), data)
 
   let chatExecution = null
+  let sessionLimitChecked = false
   if (process.env.VERIFY_CHAT === '1') {
     // Three admitted requests: a tool turn, a follow-up, and the same follow-up in a fresh session.
     const marker = `DEMO-${randomBytes(4).toString('hex')}`
@@ -116,6 +117,21 @@ try {
     chatExecution = { toolTurn: answer.execution, followUp: follow.execution, otherSession: isolated.execution }
     await otherPage.getByRole('button', { name: 'Sign out', exact: true }).click()
     await other.close()
+    if (process.env.VERIFY_SESSION_CAP === '1') {
+      // Three extra reservations in the first session. The sixth attempt must never reach the model.
+      for (const remaining of [2, 1, 0]) {
+        const turn = await sendChat(page, 'Reply briefly with the word blue.')
+        assert.equal(turn.remaining, remaining)
+      }
+      assert.equal(await page.getByRole('button', { name: 'Send', exact: true }).isDisabled(), true)
+      const refused = await context.request.post(`${demoUrl}/api/demo-chat`, {
+        headers: { 'Sec-Fetch-Site': 'same-origin' },
+        data: { message: 'Check the session limit.' },
+      })
+      assert.equal(refused.status(), 429)
+      assert.match((await refused.json()).detail, /five chat attempts/)
+      sessionLimitChecked = true
+    }
   } else {
     const chatStatus = await context.request.get(`${demoUrl}/api/demo-chat`)
     assert.equal(chatStatus.status(), 200)
@@ -124,6 +140,11 @@ try {
 
   const anonymous = await browser.newContext()
   assert.equal((await anonymous.request.get(`${demoUrl}/api/messages`)).status(), 401)
+  const publicTrace = await anonymous.newPage()
+  await publicTrace.goto(new URL('/chat-trace.html', demoUrl).href)
+  await publicTrace.getByRole('heading', { name: 'Inside a real chat turn' }).waitFor()
+  assert.equal(await publicTrace.locator('tbody tr').count(), 8)
+  assert.equal(await publicTrace.locator('script').count(), 0)
   await anonymous.close()
   // Refusing an invalid password change proves the read-only guard without risking a password change.
   assert.equal((await context.request.post(`${demoUrl}/api/auth/password`, {
@@ -146,7 +167,7 @@ try {
   assert.ok((await schema.json()).paths['/api/messages'])
   assert.deepEqual(pageErrors, [], 'No browser runtime errors')
   assert.deepEqual(serverErrors, [], 'No server errors during the visitor journey')
-  console.log(JSON.stringify({ demoUrl, docsUrl, apiCommit: serving.commit, messages: data.length, chatExecution, result: 'passed' }))
+  console.log(JSON.stringify({ demoUrl, docsUrl, apiCommit: serving.commit, messages: data.length, chatExecution, sessionLimitChecked, result: 'passed' }))
 } finally {
   await context.close()
   await browser.close()

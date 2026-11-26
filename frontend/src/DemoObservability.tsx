@@ -20,7 +20,11 @@ export function DemoObservability() {
       <p>
         After a successful reply, open <strong>Inside this response</strong> for the duration, model
         calls, rows read, tokens, reported cost, trace ID and API commit from your turn. Visitors
-        see their own results. Sharing a trace requires a separate review.
+        see their own results.{' '}
+        <a href="/chat-trace.html" className="underline underline-offset-2">
+          Explore a reviewed production trace
+        </a>{' '}
+        to see a real two-call turn.
       </p>
       <p>
         Each question can use 600 characters. A session gets five attempts. Visitors share 20
