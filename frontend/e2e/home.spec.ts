@@ -5,6 +5,9 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/api/auth/me', (route) =>
     route.fulfill({ json: { id: 1, email: 'ada@example.com', is_admin: false } }),
   )
+  await page.route('**/api/demo-chat', (route) =>
+    route.fulfill({ json: { available: false, remaining: 5, detail: 'Chat is not activated.' } }),
+  )
 })
 
 // The test answers /api itself: it checks the visor, not the API (that is pytest's job).

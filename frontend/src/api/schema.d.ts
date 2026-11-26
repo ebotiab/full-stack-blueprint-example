@@ -64,6 +64,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/demo-chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Chat Status */
+        get: operations["chat_status_api_demo_chat_get"];
+        put?: never;
+        /** Chat */
+        post: operations["chat_api_demo_chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -181,12 +199,52 @@ export interface components {
             /** Question */
             question: string;
         };
+        /** Answer */
+        Answer: {
+            /** Answer */
+            answer: string;
+            /** Remaining */
+            remaining: number;
+            execution: components["schemas"]["Execution"];
+        };
+        /** ChatStatus */
+        ChatStatus: {
+            /** Available */
+            available: boolean;
+            /** Detail */
+            detail: string;
+            /** Remaining */
+            remaining: number;
+        };
         /** Credentials */
         Credentials: {
             /** Email */
             email: string;
             /** Password */
             password: string;
+        };
+        /** Execution */
+        Execution: {
+            /** Model */
+            model: string;
+            /** Duration Ms */
+            duration_ms: number;
+            /** Model Requests */
+            model_requests: number;
+            /** Tool Used */
+            tool_used: boolean;
+            /** Rows Read */
+            rows_read: number;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Cost Usd */
+            cost_usd: string | null;
+            /** Trace Id */
+            trace_id: string;
+            /** Commit */
+            commit: string | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -220,6 +278,11 @@ export interface components {
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** Question */
+        Question: {
+            /** Message */
+            message: string;
         };
         /**
          * User
@@ -315,6 +378,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentAnswer"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    chat_status_api_demo_chat_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatStatus"];
+                };
+            };
+        };
+    };
+    chat_api_demo_chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Question"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Answer"];
                 };
             };
             /** @description Validation Error */

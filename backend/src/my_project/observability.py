@@ -16,6 +16,7 @@ import logfire
 from fastapi import FastAPI, Request, WebSocket
 
 from . import __version__
+from .demo_telemetry import DemoSampler
 from .settings import Settings
 
 #: Our own variable wins; then each platform's own variable for the deployed commit.
@@ -71,6 +72,11 @@ def configure_logfire(settings: Settings) -> None:
         environment=settings.environment,
         send_to_logfire=send_to_logfire(),
         console=False,
+        metrics=False if settings.demo_enabled else None,
+        sampling=logfire.SamplingOptions(head=DemoSampler()) if settings.demo_enabled else None,
+        scrubbing=logfire.ScrubbingOptions(
+            extra_patterns=[r"exception\.message", r"exception\.stacktrace"]
+        ),
         # Public service: do not continue a caller's trace even if it sends `traceparent`.
         distributed_tracing=False,
         code_source=logfire.CodeSource(
@@ -86,7 +92,9 @@ def configure_logfire(settings: Settings) -> None:
 
 def instrument_agent(settings: Settings) -> None:
     """Agent runs, model requests and tool calls as spans; their text only if the setting allows."""
-    logfire.instrument_pydantic_ai(include_content=settings.agent_trace_content)
+    logfire.instrument_pydantic_ai(
+        include_content=False if settings.demo_enabled else settings.agent_trace_content
+    )
 
 
 def request_attributes(

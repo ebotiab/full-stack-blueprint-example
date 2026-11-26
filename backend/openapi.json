@@ -112,6 +112,76 @@
         ]
       }
     },
+    "/api/demo-chat": {
+      "get": {
+        "tags": [
+          "demo chat"
+        ],
+        "summary": "Chat Status",
+        "operationId": "chat_status_api_demo_chat_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatStatus"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "demo chat"
+        ],
+        "summary": "Chat",
+        "operationId": "chat_api_demo_chat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Question"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Answer"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "session": []
+          }
+        ]
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -296,6 +366,51 @@
         ],
         "title": "AgentQuestion"
       },
+      "Answer": {
+        "properties": {
+          "answer": {
+            "type": "string",
+            "title": "Answer"
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining"
+          },
+          "execution": {
+            "$ref": "#/components/schemas/Execution"
+          }
+        },
+        "type": "object",
+        "required": [
+          "answer",
+          "remaining",
+          "execution"
+        ],
+        "title": "Answer"
+      },
+      "ChatStatus": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "detail",
+          "remaining"
+        ],
+        "title": "ChatStatus"
+      },
       "Credentials": {
         "properties": {
           "email": {
@@ -315,6 +430,78 @@
           "password"
         ],
         "title": "Credentials"
+      },
+      "Execution": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "title": "Duration Ms"
+          },
+          "model_requests": {
+            "type": "integer",
+            "title": "Model Requests"
+          },
+          "tool_used": {
+            "type": "boolean",
+            "title": "Tool Used"
+          },
+          "rows_read": {
+            "type": "integer",
+            "title": "Rows Read"
+          },
+          "input_tokens": {
+            "type": "integer",
+            "title": "Input Tokens"
+          },
+          "output_tokens": {
+            "type": "integer",
+            "title": "Output Tokens"
+          },
+          "cost_usd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Usd"
+          },
+          "trace_id": {
+            "type": "string",
+            "title": "Trace Id"
+          },
+          "commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Commit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "duration_ms",
+          "model_requests",
+          "tool_used",
+          "rows_read",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd",
+          "trace_id",
+          "commit"
+        ],
+        "title": "Execution"
       },
       "HTTPValidationError": {
         "properties": {
@@ -403,6 +590,22 @@
           "new_password"
         ],
         "title": "PasswordChange"
+      },
+      "Question": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "Question"
       },
       "User": {
         "properties": {

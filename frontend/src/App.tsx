@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { api, type Message } from './api/client'
 import { formatDate } from './lib/format'
 import { publicDemo } from './demo'
+import { DemoChat } from './DemoChat'
 
 type State = { status: 'loading' } | { status: 'error' } | { status: 'ready'; messages: Message[] }
 
@@ -30,7 +31,7 @@ export function App() {
       {publicDemo && (
         <p className="mb-6 text-sm text-zinc-500">
           These example messages are stored in PostgreSQL and loaded through the authenticated API.
-          This demo is read-only; the AI agent is not enabled.
+          The chat can read this fictional data. Other visitor actions remain read-only.
         </p>
       )}
       {state.status === 'loading' && <p>Loading…</p>}
@@ -45,6 +46,7 @@ export function App() {
           ))}
         </ul>
       )}
+      {publicDemo && <DemoChat />}
     </main>
   )
 }
