@@ -67,6 +67,9 @@ async function verifyPublicTrace() {
   await guide.getByText('read_demo_messages', { exact: true }).waitFor()
   assert.equal(await guide.getByRole('button', { name: 'chat openai/gpt-oss-20b', exact: true }).count(), 2)
   assert.equal(await guide.getByText('POST Gateway US', { exact: true }).count(), 2)
+  // The public URL preselects the API span. Wait for its details before selecting another row.
+  await guide.getByText('demo.source_trace_id', { exact: false }).first().waitFor()
+  await guide.getByRole('button', { name: 'Close details panel' }).click()
   await guide.getByText('SELECT demo messages', { exact: true }).click()
   await guide.getByRole('button', { name: 'span_name SELECT demo messages' }).waitFor()
   await guide.close()
