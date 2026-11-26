@@ -86,7 +86,7 @@ try {
     // Three admitted requests: a tool turn, a follow-up, and the same follow-up in a fresh session.
     const marker = `DEMO-${randomBytes(4).toString('hex')}`
     const recall = 'What was the fictional label in my previous message? If there was none, say NONE.'
-    const answer = await sendChat(page, `My fictional label is ${marker}. Read the stored messages and summarize them.`)
+    const answer = await sendChat(page, `My fictional label is ${marker}. Read the stored messages and summarize them. End the reply with my exact fictional label.`)
     assert.equal(answer.execution.tool_used, true)
     assert.ok(answer.execution.rows_read > 0 && answer.execution.rows_read <= 4)
     assert.equal(answer.execution.model_requests, 2)
