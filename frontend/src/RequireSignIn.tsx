@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 
 import { api } from './api/client'
 import type { components } from './api/schema'
+import { demoCredentials, publicDemo } from './demo'
 
 type User = components['schemas']['User']
 
@@ -59,8 +60,19 @@ export function RequireSignIn({ children }: { children: ReactNode }) {
   return (
     <main>
       <h1>{document.title}</h1>
-      {state.status === 'loading' && <p>Loading…</p>}
-      {state.status === 'error' && <p role="alert">{UNAVAILABLE}</p>}
+      {state.status === 'loading' && (
+        <p>
+          {publicDemo ? 'Connecting… The free API may take about a minute to wake up.' : 'Loading…'}
+        </p>
+      )}
+      {state.status === 'error' && (
+        <>
+          <p role="alert">{UNAVAILABLE}</p>
+          <button type="button" onClick={() => window.location.reload()}>
+            Retry connection
+          </button>
+        </>
+      )}
       {state.status === 'signed-out' && (
         <SignInForm onSignedIn={(user) => setState({ status: 'signed-in', user })} />
       )}
@@ -82,9 +94,14 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: User) => void }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    signIn({ email, password })
+  }
+
+  function signIn(credentials: { email: string; password: string }) {
     setBusy(true)
+    setProblem(null)
     api
-      .POST('/api/auth/login', { body: { email, password } })
+      .POST('/api/auth/login', { body: credentials })
       .then(({ data, response }) => {
         setBusy(false)
         if (data) onSignedIn(data)
@@ -98,6 +115,20 @@ function SignInForm({ onSignedIn }: { onSignedIn: (user: User) => void }) {
 
   return (
     <form aria-label="Sign in" onSubmit={submit}>
+      {publicDemo && (
+        <section className="grid gap-3 rounded-lg border border-zinc-300 p-4 dark:border-zinc-700">
+          <h2 className="font-semibold">Explore the live example</h2>
+          <p className="text-sm">
+            Fictitious data, a shared read-only visitor, and real session authentication.
+          </p>
+          <p className="text-sm">
+            The free API may take about a minute to wake up after inactivity.
+          </p>
+          <button type="button" disabled={busy} onClick={() => signIn(demoCredentials)}>
+            Try the demo
+          </button>
+        </section>
+      )}
       <label>
         Email
         <input

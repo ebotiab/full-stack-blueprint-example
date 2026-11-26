@@ -9,7 +9,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
-from .. import __version__
+from .. import __version__, demo
 from ..agent import routes as agent_routes
 from ..auth import routes as auth_routes
 from ..db.migrate import migrate
@@ -28,6 +28,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
             applied = await migrate(conn)
         logfire.info("migrations applied at start-up: {applied}", applied=applied)
     await database.pool()
+    if settings.demo_enabled:
+        async with connect(settings.database_url) as conn:
+            await demo.initialize(conn)
     # One record per start: tells from when this version serves, even if nobody called it yet.
     logfire.info("api started")
     try:
@@ -80,6 +83,7 @@ def create_app() -> FastAPI:
         max_size=settings.db_pool_max_size,
     )
     instrument_api(app)
+    app.add_middleware(BaseHTTPMiddleware, dispatch=demo.read_only)
     app.add_middleware(BaseHTTPMiddleware, dispatch=only_through_vercel)
     app.add_middleware(BaseHTTPMiddleware, dispatch=no_store_by_default)
     app.include_router(routes.router, prefix="/api")

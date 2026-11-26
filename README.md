@@ -78,7 +78,7 @@ its restricted token as `VITE_LOGFIRE_TOKEN` and the URL of the project's region
 is taken. Migrations run at start-up. The free plan sleeps after 15 idle minutes; the first request then takes about a minute.
 
 **Visor (Vercel).** Import the repository at https://vercel.com/new with root directory
-`frontend`. `frontend/vercel.json` proxies `/api` to `https://my-project-api.onrender.com`: if the API's real URL is
+`frontend`. `frontend/vercel.json` proxies `/api` to `https://full-stack-blueprint-example-api.onrender.com`: if the API's real URL is
 different, change it there. Web Analytics: turn it on in the project (no cookies).
 
 **Origin secret (recommended).** So that nothing reaches the API without going through Vercel,

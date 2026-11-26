@@ -30,6 +30,8 @@ class Settings(BaseSettings):
     )
     db_pool_min_size: int = 1
     db_pool_max_size: int = 8
+    #: Public read-only example with a shared non-admin visitor account. Never use with private data.
+    demo_enabled: bool = False
     #: Apply pending migrations when the API starts. On by default where the platform has no
     #: pre-deploy step (this target).
     migrate_on_start: bool = True

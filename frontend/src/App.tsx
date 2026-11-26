@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { api, type Message } from './api/client'
 import { formatDate } from './lib/format'
+import { publicDemo } from './demo'
 
 type State = { status: 'loading' } | { status: 'error' } | { status: 'ready'; messages: Message[] }
 
@@ -26,6 +27,12 @@ export function App() {
   return (
     <main>
       <h1>{document.title}</h1>
+      {publicDemo && (
+        <p className="mb-6 text-sm text-zinc-500">
+          These example messages are stored in PostgreSQL and loaded through the authenticated API.
+          This demo is read-only; the AI agent is not enabled.
+        </p>
+      )}
       {state.status === 'loading' && <p>Loading…</p>}
       {state.status === 'error' && <p role="alert">The API is not responding. Try again later.</p>}
       {state.status === 'ready' && (
