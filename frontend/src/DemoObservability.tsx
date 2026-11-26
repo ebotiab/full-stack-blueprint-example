@@ -20,11 +20,21 @@ export function DemoObservability() {
       <p>
         After a successful reply, open <strong>Inside this response</strong> for the duration, model
         calls, rows read, tokens, reported cost, trace ID and API commit from your turn. Visitors
-        see their own results.{' '}
-        <a href="/chat-trace.html" className="underline underline-offset-2">
-          Explore a reviewed production trace
+        see their own results.
+      </p>
+      <p>
+        <a
+          href="https://logfire-us.pydantic.dev/public-trace/a52caeb8-f7f4-4851-a620-22e4e1c4c0f7?spanId=0a438f28431cf17a"
+          className="underline underline-offset-2"
+        >
+          Explore the example trace in Logfire
         </a>{' '}
-        to see a real two-call turn.
+        to inspect both model calls, the tool and its database query. This reviewed example opens
+        without an account. Its{' '}
+        <a href="/chat-trace.html" className="underline underline-offset-2">
+          timing summary
+        </a>{' '}
+        stays available after the public link expires.
       </p>
       <p>
         Each question can use 600 characters. A session gets five attempts. Visitors share 20

@@ -1,6 +1,7 @@
 // A fresh browser against the real deployment. No mocked requests or Vercel bypass token.
 // Run from the repository root after the providers report the intended deployments live:
 //   node scripts/verify-live-demo.mjs
+//   node scripts/verify-live-demo.mjs --public-trace  (signed-out observability only)
 import assert from 'node:assert/strict'
 import { randomBytes } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
@@ -12,6 +13,9 @@ const readme = await readFile(new URL('../README.md', import.meta.url), 'utf8')
 const demoUrl = readme.match(/\[Open the live demo\]\((https:\/\/[^)]+)\)/)?.[1]
 const docsUrl = readme.match(/\[Public API documentation\]\((https:\/\/[^)]+)\)/)?.[1]
 assert.ok(demoUrl && docsUrl, 'README must provide the public demo and API documentation links')
+
+const traceUrl = readme.match(/\[Explore the example trace in Logfire\]\((https:\/\/logfire-us\.pydantic\.dev\/public-trace\/[^)]+)\)/)?.[1]
+assert.ok(traceUrl, 'README must link to the official public trace')
 
 const browser = await chromium.launch({
   proxy: process.env.HTTPS_PROXY ? { server: process.env.HTTPS_PROXY } : undefined,
@@ -41,7 +45,34 @@ async function sendChat(chatPage, message) {
   return turn
 }
 
-try {
+async function verifyPublicTrace() {
+  const guide = await context.newPage()
+  await guide.goto(new URL('/#observability', demoUrl).href)
+  const link = guide.getByRole('link', { name: 'Explore the example trace in Logfire', exact: true })
+  assert.equal(await link.getAttribute('href'), traceUrl)
+
+  const summary = await context.newPage()
+  const summaryUrl = await guide.getByRole('link', { name: 'timing summary' }).getAttribute('href')
+  await summary.goto(new URL(summaryUrl, demoUrl).href)
+  await summary.getByRole('heading', { name: 'Inside a real chat turn' }).waitFor()
+  assert.equal(await summary.getByRole('link', { name: 'Explore the example trace in Logfire' }).getAttribute('href'), traceUrl)
+  assert.equal(await summary.locator('tbody tr').count(), 8)
+  assert.equal(await summary.locator('script').count(), 0)
+  await summary.close()
+
+  await link.click()
+  await guide.waitForURL(traceUrl)
+  await guide.getByRole('heading', { name: /public trace \(read-only\)/i }).waitFor()
+  await guide.getByText('Pydantic AI agent', { exact: true }).waitFor()
+  await guide.getByText('read_demo_messages', { exact: true }).waitFor()
+  assert.equal(await guide.getByRole('button', { name: 'chat openai/gpt-oss-20b', exact: true }).count(), 2)
+  assert.equal(await guide.getByText('POST Gateway US', { exact: true }).count(), 2)
+  await guide.getByText('SELECT demo messages', { exact: true }).click()
+  await guide.getByRole('button', { name: 'span_name SELECT demo messages' }).waitFor()
+  await guide.close()
+}
+
+async function verifyVisitorJourney() {
   // Follow the actual README link, starting without cookies for GitHub, Vercel or this app.
   await page.goto('https://github.com/ebotiab/full-stack-blueprint-example', { timeout: 120_000 })
   const link = page.getByRole('link', { name: 'Open the live demo', exact: true })
@@ -140,11 +171,6 @@ try {
 
   const anonymous = await browser.newContext()
   assert.equal((await anonymous.request.get(`${demoUrl}/api/messages`)).status(), 401)
-  const publicTrace = await anonymous.newPage()
-  await publicTrace.goto(new URL('/chat-trace.html', demoUrl).href)
-  await publicTrace.getByRole('heading', { name: 'Inside a real chat turn' }).waitFor()
-  assert.equal(await publicTrace.locator('tbody tr').count(), 8)
-  assert.equal(await publicTrace.locator('script').count(), 0)
   await anonymous.close()
   // Refusing an invalid password change proves the read-only guard without risking a password change.
   assert.equal((await context.request.post(`${demoUrl}/api/auth/password`, {
@@ -168,6 +194,15 @@ try {
   assert.deepEqual(pageErrors, [], 'No browser runtime errors')
   assert.deepEqual(serverErrors, [], 'No server errors during the visitor journey')
   console.log(JSON.stringify({ demoUrl, docsUrl, apiCommit: serving.commit, messages: data.length, chatExecution, sessionLimitChecked, result: 'passed' }))
+}
+
+try {
+  await verifyPublicTrace()
+  if (process.argv.includes('--public-trace')) {
+    console.log('Verified signed-out access from the demo to the official Logfire trace and its SQL span.')
+  } else {
+    await verifyVisitorJourney()
+  }
 } finally {
   await context.close()
   await browser.close()
