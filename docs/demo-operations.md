@@ -91,7 +91,8 @@ Activation, only for this example:
    for the inference key. Check Groq’s own [data controls](https://console.groq.com/docs/your-data)
    separately. Its default policy permits temporary retention for reliability or abuse investigations.
    The app also sends `Cache-Control: no-store` on each model call.
-   Check new Gateway spans for absent input/output messages, instructions and raw HTTP bodies.
+   Verify each model span has a Gateway client span and the trace has zero native
+   `pydantic-ai-gateway` spans. Review the recorded attributes for content and credentials.
    Review headers and baggage separately. [Gateway data retention](https://pydantic.dev/docs/logfire/manage/ai-gateway/data-retention/)
 4. Create/reuse a project-only inference key with minimum permissions. Store its value only in
    Render's `PYDANTIC_AI_GATEWAY_API_KEY`. Store the route slug in `MY_PROJECT_DEMO_GATEWAY_ROUTE`.
@@ -137,8 +138,12 @@ In demo mode a custom OpenTelemetry sampler exports only admitted chat runs (at 
 spans each) and up to 100 startup records/month, all reserved through PostgreSQL. Metrics are
 disabled. Arbitrary API calls, rejected requests, logins and health probes do not cause ingest.
 With pending-span records counted conservatively this is under 10,000 application records/month.
-Gateway telemetry is separate: at most 200 model calls/month can be initiated by this
-application, but its own retry/ingest limits must still be verified. No visitor-facing Logfire
+Each actual Gateway HTTP call gets a client span within the local allowance. Only the method,
+US host, route, status and elapsed time are recorded there. Its parent model span carries usage
+and reported cost. The outgoing W3C trace context keeps the IDs and clears the sampling bit.
+This suppresses the hosted Gateway's separate span, which otherwise retains upstream response
+headers even with **Include messages** off. No request/response headers are copied into the
+client span. No visitor-facing Logfire
 queries exist, so public traffic cannot run up query charges through the app.
 
 Each successful response carries only its own duration, tool/row counts, request/token counts,
@@ -175,6 +180,14 @@ new generated description below it. All chat modules, guards, migration, proxy a
 settings survived. After resolving that text conflict, `make setup`, all fourteen checks and
 another clean `scripts/update-example.sh HEAD` passed. No template change was needed, and this
 does not promise conflict-free future upgrades.
+
+A synthetic tool turn through the dedicated `full-stack-blueprint-example-groq` route
+returned four PostgreSQL rows. A follow-up recalled a fictional label in its own session, and a
+second session could not recall it. Before the client-side privacy change, Logfire showed the
+US Gateway calling Groq once per model request. **Include messages** removed the bodies. Its
+native spans still stored an upstream Cloudflare response cookie, so those traces must stay
+private and expire under the 30-day Personal retention policy. The shareable example must come
+from a fresh run after the change. The visitor's session cookie never went to the Gateway.
 
 The US public API confirmed the organization uses **Personal** and Gateway is enabled.
 The operator credential can read the project and its Gateway spending limits. `obs status`

@@ -5,17 +5,22 @@ from collections.abc import AsyncIterator
 
 import asyncpg
 import httpx
+import httpx2
 import pytest
 from asgi_lifespan import LifespanManager
 from fastapi import HTTPException
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import SimpleSpanProcessor
+from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.sdk.trace.sampling import Decision
 from pydantic_ai.exceptions import ModelHTTPError, UserError
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart, UserPromptPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
-from my_project import demo_chat
+from my_project import demo_chat, demo_gateway
 from my_project.api.main import create_app
 from my_project.demo import EMAIL, PASSWORD
+from my_project.demo_gateway import GatewayClient
 from my_project.demo_telemetry import DemoSampler, trace_allowance
 from my_project.settings import PREFIX, get_settings
 
@@ -195,7 +200,7 @@ async def test_timeout_and_tool_loop_stop(
         assert (await ask(http)).status_code == 422
 
 
-def test_configuration_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_configuration_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(f"{PREFIX}DEMO_ENABLED", "true")
     monkeypatch.setenv(f"{PREFIX}DEMO_CHAT_ENABLED", "false")
     get_settings.cache_clear()
@@ -204,8 +209,9 @@ def test_configuration_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PYDANTIC_AI_GATEWAY_API_KEY", raising=False)
     get_settings.cache_clear()
     assert "missing" in (demo_chat.configuration_error() or "")
-    with pytest.raises(HTTPException) as exc:
-        demo_chat.get_chat_model()
+    async with GatewayClient() as client:
+        with pytest.raises(HTTPException) as exc:
+            demo_chat.get_chat_model(client)
     assert exc.value.status_code == 503
     get_settings.cache_clear()
 
@@ -220,8 +226,19 @@ async def test_gateway_model_pins_us_route_and_disables_transport_retries(
     # An unrelated base URL must never redirect this demo's credential.
     monkeypatch.setenv("PYDANTIC_AI_GATEWAY_BASE_URL", "https://unrelated.invalid")
     get_settings.cache_clear()
+    exporter = InMemorySpanExporter()
+    provider = TracerProvider()
+    provider.add_span_processor(SimpleSpanProcessor(exporter))
+    monkeypatch.setattr(demo_gateway, "_TRACER", provider.get_tracer("demo-test"))
+    received: list[httpx2.Request] = []
+
+    def upstream(request: httpx2.Request) -> httpx2.Response:
+        received.append(request)
+        return httpx2.Response(200, json={"object": "list", "data": []})
+
+    client = GatewayClient(transport=httpx2.MockTransport(upstream))
     try:
-        model = demo_chat.get_chat_model()
+        model = demo_chat.get_chat_model(client)
         async with model:
             assert model.model_name == "openai/gpt-oss-20b"
             assert model.settings is not None
@@ -233,16 +250,35 @@ async def test_gateway_model_pins_us_route_and_disables_transport_retries(
             )
             assert model.provider.client.max_retries == 0
             assert model.provider.client.timeout == 20.0
+            await model.provider.client.models.list(
+                extra_headers={"Cookie": "synthetic=example", "baggage": "test=example"}
+            )
+            headers = received[0].headers
+            assert headers["traceparent"].endswith("-00")
+            assert "cookie" not in headers
+            assert "baggage" not in headers
+            [http_span] = exporter.get_finished_spans()
+            assert http_span.context is not None
+            assert headers["traceparent"] == (
+                f"00-{http_span.context.trace_id:032x}-{http_span.context.span_id:016x}-00"
+            )
+            assert http_span.attributes == {
+                "gateway.route": "example-free",
+                "server.address": "gateway-us.pydantic.dev",
+                "http.request.method": "GET",
+                "http.response.status_code": 200,
+            }
 
         def invalid(*args, **kwargs):
             raise UserError("sensitive-config-detail")
 
         monkeypatch.setattr(demo_chat, "gateway_provider", invalid)
         with pytest.raises(HTTPException) as exc:
-            demo_chat.get_chat_model()
+            demo_chat.get_chat_model(client)
         assert exc.value.status_code == 503
         assert "sensitive-config-detail" not in exc.value.detail
     finally:
+        await client.aclose()
         get_settings.cache_clear()
 
 

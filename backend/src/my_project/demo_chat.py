@@ -32,6 +32,7 @@ from pydantic_ai.providers.gateway import gateway_provider
 
 from .api.deps import ConnectionDep
 from .auth.deps import CurrentSession
+from .demo_gateway import GatewayClient, gateway_client, suppress_gateway_header_capture
 from .demo_telemetry import trace_allowance
 from .observability import deployed_commit
 from .settings import get_settings
@@ -106,7 +107,7 @@ def configuration_error() -> str | None:
     return None
 
 
-def get_chat_model() -> Model:
+def get_chat_model(client: Annotated[GatewayClient, Depends(gateway_client)]) -> Model:
     if error := configuration_error():
         raise HTTPException(503, error)
     try:
@@ -114,7 +115,9 @@ def get_chat_model() -> Model:
             "openai-chat",
             route=get_settings().demo_gateway_route,
             base_url=GATEWAY_URL,
+            http_client=client,
         )
+        client.event_hooks["request"].append(suppress_gateway_header_capture)
         # SDK retries are NOT counted by UsageLimits. Disable them separately.
         provider.client.max_retries = 0
         provider.client.timeout = 20.0
