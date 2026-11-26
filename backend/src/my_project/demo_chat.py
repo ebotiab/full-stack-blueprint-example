@@ -118,7 +118,12 @@ def get_chat_model() -> Model:
         # SDK retries are NOT counted by UsageLimits. Disable them separately.
         provider.client.max_retries = 0
         provider.client.timeout = 20.0
-        return OpenAIChatModel(MODEL_NAME, provider=provider)
+        return OpenAIChatModel(
+            MODEL_NAME,
+            provider=provider,
+            # The Gateway can cache completions per key. Each visitor request must bypass it.
+            settings=OpenAIChatModelSettings(extra_headers={"Cache-Control": "no-store"}),
+        )
     except UserError:
         raise HTTPException(503, "Chat is unavailable: invalid Gateway configuration.") from None
 

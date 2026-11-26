@@ -109,11 +109,10 @@ export function DemoChat() {
             <details className="mt-3 text-sm text-zinc-500">
               <summary className="cursor-pointer">Inside this response</summary>
               <p>
-                API → Pydantic AI →{' '}
+                API → Pydantic AI → US Gateway → model
                 {result.execution.tool_used
-                  ? `PostgreSQL tool (${result.execution.rows_read} rows) → `
+                  ? ` → PostgreSQL tool (${result.execution.rows_read} rows) → US Gateway → model`
                   : ''}
-                Logfire AI Gateway → model
               </p>
               <p>
                 {result.execution.duration_ms} ms · {result.execution.model_requests} model calls ·{' '}
@@ -158,25 +157,6 @@ export function DemoChat() {
           {error}
         </p>
       )}
-      <aside id="observability" className="mt-6 text-sm text-zinc-500">
-        <h3 className="font-semibold text-zinc-800 dark:text-zinc-200">How it works</h3>
-        <p>
-          Your browser sends a session-authenticated request to the API. Pydantic AI can read four
-          fictional PostgreSQL messages with a typed tool, then calls the model through the US
-          Logfire AI Gateway. Logfire correlates the API, agent, tool and model spans.
-        </p>
-        <p className="mt-2">
-          The response details above are real execution metadata from your request. Conversations
-          are never automatically shared. This page has no Logfire read token and makes no public
-          Logfire queries.
-        </p>
-        <p className="mt-2">
-          Limits: 600 characters, five attempts per session, 20 per UTC day and 100 per UTC month
-          shared by all visitors. One run at a time, at most two model calls and one tool call, no
-          automatic retries or paid fallback. Failed attempts count. The free API can take a minute
-          to wake up.
-        </p>
-      </aside>
     </section>
   )
 }

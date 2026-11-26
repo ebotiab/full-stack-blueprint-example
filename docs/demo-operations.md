@@ -12,8 +12,7 @@ This repository owns the demo-specific changes. The template contains no demo do
 Render's Blueprint automatically syncs `render.yaml` from `main`. `DATABASE_URL`, `LOGFIRE_TOKEN`
 and `MY_PROJECT_ORIGIN_SECRET` belong only in the service's secret environment. Vercel's
 `ORIGIN_SECRET` must match the API value. Only `VITE_PUBLIC_DEMO=true` enables the visitor button;
-never put privileged credentials in a `VITE_` variable. Browser Logfire, when configured, uses
-only a restricted frontend application token with the production origin allowed.
+never put privileged credentials in a `VITE_` variable. The public demo sends Logfire telemetry from the API and Gateway only.
 
 The public account is created idempotently at API startup with `MY_PROJECT_DEMO_ENABLED=true`.
 It is not an administrator. The public deployment refuses mutations other than signing in,
@@ -87,9 +86,13 @@ Activation, only for this example:
 2. If needed, connect an independently verified **Free** Groq account as a dedicated supported
    BYOK provider and a route with only that provider, no fallback or Gateway retry. Verify
    `openai/gpt-oss-20b` is served by the route. Never silently select a paid built-in provider.
-3. Enable Gateway telemetry for this project, but disable request/response content capture
-   there too. Application `include_content=False` does not change Gateway capture. Apply
-   project ingest/query caps below the included allowances before opening public traffic.
+3. In **Gateway → Settings → Telemetry**, select this project and turn **Include messages** off.
+   It defaults to on. Allow up to 60 seconds for the setting to propagate. Disable response caching
+   for the inference key. Check Groq’s own [data controls](https://console.groq.com/docs/your-data)
+   separately. Its default policy permits temporary retention for reliability or abuse investigations.
+   The app also sends `Cache-Control: no-store` on each model call.
+   Check new Gateway spans for absent input/output messages, instructions and raw HTTP bodies.
+   Review headers and baggage separately. [Gateway data retention](https://pydantic.dev/docs/logfire/manage/ai-gateway/data-retention/)
 4. Create/reuse a project-only inference key with minimum permissions. Store its value only in
    Render's `PYDANTIC_AI_GATEWAY_API_KEY`. Store the route slug in `MY_PROJECT_DEMO_GATEWAY_ROUTE`.
    The application pins the US base `https://gateway-us.pydantic.dev/proxy`, OpenAI chat protocol,
@@ -99,6 +102,8 @@ Activation, only for this example:
    trace using `LOGFIRE_READ_TOKEN` from the operator environment. Never install that read token
    in Vercel, frontend artifacts or a public query API. No OAuth wizard is required for valid keys.
 6. Run the browser verifier with `VERIFY_CHAT=1`, then `obs status` for the served API commit.
+   The verifier spends three shared attempts on fictional data. It requires the first session
+   to recall a fresh label and checks that a second signed-in session cannot recall it.
    Record the verified route, account quotas, measured tokens/cost and reviewed trace link here,
    and remove the README's inactive notice only after that verification.
 
@@ -119,7 +124,7 @@ processes. The reservation transaction commits before inference: five attempts/s
 20/day and 100/month (UTC). Failures, cancellation, crashes and restarts never refund attempts.
 Re-login cannot reset global counters. An upstream request may finish after a client timeout;
 its attempt remains reserved. This is safe only with the verified free upstream account;
-these controls are not advertised as a paid dollar cap.
+a paid route would need a separate enforceable monetary budget.
 
 A provider 429 opens a persistent circuit until the next UTC day. 401/402/403 block indefinitely
 until the operator fixes the route and clears **only** `demo_chat_budget.blocked_until` for
@@ -132,7 +137,7 @@ In demo mode a custom OpenTelemetry sampler exports only admitted chat runs (at 
 spans each) and up to 100 startup records/month, all reserved through PostgreSQL. Metrics are
 disabled. Arbitrary API calls, rejected requests, logins and health probes do not cause ingest.
 With pending-span records counted conservatively this is under 10,000 application records/month.
-Gateway telemetry is separate: at most 200 successful model calls/month are initiated by this
+Gateway telemetry is separate: at most 200 model calls/month can be initiated by this
 application, but its own retry/ingest limits must still be verified. No visitor-facing Logfire
 queries exist, so public traffic cannot run up query charges through the app.
 
@@ -171,11 +176,21 @@ settings survived. After resolving that text conflict, `make setup`, all fourtee
 another clean `scripts/update-example.sh HEAD` passed. No template change was needed, and this
 does not promise conflict-free future upgrades.
 
-The operator confirmed that the replacement Gateway-capable key was saved for **future cloud
-sessions**. This running environment still has only the earlier `LOGFIRE_READ_TOKEN`: Logfire
-queries and `obs status` work, but the public management API returns 401. Continue activation
-in a session created with the updated environment. Use the existing key through its secret
-binding; do not repeat OAuth setup or put its value in chat. Public Gateway management schema:
-`https://logfire-us.pydantic.dev/api/openapi.json`; official API base:
-`https://api-us.pydantic.dev/api/v1/`. A management key is not automatically the project-only
-inference key that should be installed in Render.
+The US public API confirmed the organization uses **Personal** and Gateway is enabled.
+The operator credential can read the project and its Gateway spending limits. `obs status`
+found PR #24's production commit with no recorded errors. A bounded query returned its
+`api started` records. These checks verify telemetry from Render. Live inference still
+requires a project-only credential and a verified route.
+
+On this plan, listing providers or endpoints via the [public management API](https://api-us.pydantic.dev/api/docs)
+returns HTTP 403 with a plan restriction. Use the organization-admin **Gateway → Providers**
+screen to connect Groq Free and create the dedicated endpoint. Confirm its one upstream
+and the exact account limits before enabling the chat.
+
+Personal includes 10 million telemetry records per month across the organization with no
+paid overage. Crossing the allowance restricts trace views and can eventually drop new
+records. Retention is 30 days. The plan sets concurrent and daily query budgets for read
+tokens. The visitor interface issues zero Logfire queries. Keep operator queries scoped to the
+commit or synthetic trace and a short time window.
+[Telemetry allowance and retention](https://pydantic.dev/docs/logfire/manage/logfire-costs/) ·
+[Query limits](https://pydantic.dev/docs/logfire/reference/query-limits/)

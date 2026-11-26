@@ -2,6 +2,7 @@
 // Run from the repository root after the providers report the intended deployments live:
 //   node scripts/verify-live-demo.mjs
 import assert from 'node:assert/strict'
+import { randomBytes } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 
@@ -24,6 +25,22 @@ page.on('response', (response) => {
   if (response.status() >= 500) serverErrors.push(`${response.status()} ${response.url()}`)
 })
 
+async function sendChat(chatPage, message) {
+  await chatPage.getByLabel('Your message').fill(message)
+  const reply = chatPage.waitForResponse(
+    (response) => response.url().endsWith('/api/demo-chat') && response.request().method() === 'POST',
+    { timeout: 60_000 },
+  )
+  await chatPage.getByRole('button', { name: 'Send', exact: true }).click()
+  const response = await reply
+  assert.equal(response.status(), 200)
+  const turn = await response.json()
+  assert.ok(turn.answer.length > 0)
+  assert.match(turn.execution.trace_id, /^[a-f0-9]{32}$/)
+  assert.ok(turn.execution.input_tokens > 0 && turn.execution.output_tokens > 0)
+  return turn
+}
+
 try {
   // Follow the actual README link, starting without cookies for GitHub, Vercel or this app.
   await page.goto('https://github.com/ebotiab/full-stack-blueprint-example', { timeout: 120_000 })
@@ -34,6 +51,8 @@ try {
   const button = page.getByRole('button', { name: 'Try the demo', exact: true })
   await button.waitFor({ timeout: 120_000 })
   assert.equal((await context.cookies()).some((cookie) => cookie.name === '__Host-session'), false)
+
+  await page.getByRole('heading', { name: 'How the chat works' }).waitFor()
 
   const loginResult = page.waitForResponse((response) => response.url().endsWith('/api/auth/login'))
   await button.click()
@@ -64,25 +83,20 @@ try {
 
   let chatExecution = null
   if (process.env.VERIFY_CHAT === '1') {
-    // Deliberately costs two of the shared reservations. Use only after free-route verification.
-    await page.getByRole('button', { name: 'Read the stored messages and summarize them.' }).click()
-    const firstReply = page.waitForResponse((response) => response.url().endsWith('/api/demo-chat') && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Send', exact: true }).click()
-    const first = await firstReply
-    assert.equal(first.status(), 200)
-    const answer = await first.json()
-    assert.ok(answer.answer.length > 0)
+    // Three admitted requests: a tool turn, a follow-up, and the same follow-up in a fresh session.
+    const marker = `DEMO-${randomBytes(4).toString('hex')}`
+    const recall = 'What was the fictional label in my previous message? If there was none, say NONE.'
+    const answer = await sendChat(page, `My fictional label is ${marker}. Read the stored messages and summarize them.`)
     assert.equal(answer.execution.tool_used, true)
-    assert.ok(answer.execution.rows_read > 0)
-    assert.ok(answer.execution.input_tokens > 0 && answer.execution.output_tokens > 0)
-    assert.match(answer.execution.trace_id, /^[a-f0-9]{32}$/)
-    await page.getByLabel('Your message').fill('Summarize your previous answer in one sentence.')
-    const followReply = page.waitForResponse((response) => response.url().endsWith('/api/demo-chat') && response.request().method() === 'POST')
-    await page.getByRole('button', { name: 'Send', exact: true }).click()
-    assert.equal((await followReply).status(), 200)
+    assert.ok(answer.execution.rows_read > 0 && answer.execution.rows_read <= 4)
+    assert.equal(answer.execution.model_requests, 2)
+    assert.equal(answer.execution.commit, serving.commit)
+    const follow = await sendChat(page, recall)
+    assert.ok(follow.answer.toUpperCase().includes(marker.toUpperCase()), 'Follow-up recalled the synthetic label')
+    assert.notEqual(follow.execution.trace_id, answer.execution.trace_id)
+    assert.equal(follow.remaining, 3)
     await page.getByText('Inside this response').first().click()
     await page.getByText(/PostgreSQL tool/).first().waitFor()
-    chatExecution = answer.execution
     // Control errors before model admission; these tests use no additional inference.
     assert.equal((await context.request.post(`${demoUrl}/api/demo-chat`, { data: { message: 'csrf' } })).status(), 403)
     assert.equal((await context.request.post(`${demoUrl}/api/demo-chat`, { headers: { 'Sec-Fetch-Site': 'same-origin' }, data: { message: 'x'.repeat(601) } })).status(), 422)
@@ -95,6 +109,11 @@ try {
     await otherPage.getByRole('heading', { name: 'A small Pydantic AI chat' }).waitFor()
     assert.equal(await otherPage.getByRole('list', { name: 'Conversation' }).getByRole('listitem').count(), 0)
     assert.equal((await (await other.request.get(`${demoUrl}/api/demo-chat`)).json()).remaining, 5)
+    const isolated = await sendChat(otherPage, recall)
+    assert.ok(!isolated.answer.toUpperCase().includes(marker.toUpperCase()), 'Other session cannot recall the label')
+    assert.equal(isolated.remaining, 4)
+    assert.equal((await (await context.request.get(`${demoUrl}/api/demo-chat`)).json()).remaining, 3)
+    chatExecution = { toolTurn: answer.execution, followUp: follow.execution, otherSession: isolated.execution }
     await otherPage.getByRole('button', { name: 'Sign out', exact: true }).click()
     await other.close()
   } else {

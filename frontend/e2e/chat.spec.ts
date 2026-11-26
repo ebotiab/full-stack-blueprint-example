@@ -38,7 +38,7 @@ test('sends suggestions and a continuation, displays real response metadata', as
   await expect(page.getByRole('list', { name: 'Conversation' })).toContainText(
     'A summary from the model.',
   )
-  await page.getByText('Inside this response').click()
+  await page.getByRole('list', { name: 'Conversation' }).getByText('Inside this response').click()
   await expect(page.getByText('PostgreSQL tool', { exact: false })).toBeVisible()
   await expect(page.getByText('123 ms', { exact: false })).toBeVisible()
   await page.getByLabel('Your message').fill('Make that shorter.')
