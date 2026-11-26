@@ -65,8 +65,21 @@ async def migrate(conn: asyncpg.Connection, directory: Path = MIGRATIONS_DIR) ->
         await _ensure_table(conn)
         rows = await conn.fetch("SELECT version, checksum FROM schema_migrations")
         applied = {row["version"]: row["checksum"] for row in rows}
+        migrations = list_migrations(directory)
+        # Copier replaces the bootstrap file when switching sign-in modes. Its replacement
+        # also creates users. An intentional conversion restores the old migration history
+        # and supplies its own forward migration before deploying the new application.
+        versions = {migration.version for migration in migrations}
+        old = "0002_oidc_users"
+        new = "0002_auth"
+        if old in applied and old not in versions and new in versions and new not in applied:
+            raise MigrationError(
+                f"Sign-in migration {old} was applied, but {new} replaces it and creates "
+                "users again. Restore the original migration and write an explicit account "
+                "conversion before applying pending migrations. See README, 'Template updates'."
+            )
         done: list[str] = []
-        for migration in list_migrations(directory):
+        for migration in migrations:
             checksum = applied.get(migration.version)
             if checksum is not None:
                 if checksum != migration.checksum:

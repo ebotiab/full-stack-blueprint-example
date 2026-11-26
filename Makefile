@@ -11,12 +11,15 @@ MAKEFLAGS += --no-print-directory
 API_PORT ?= 8000
 WEB_PORT ?= 5173
 # This checkout's local database, in the PostgreSQL every checkout shares (docker-compose.yml):
-# my_project in the main checkout, wt_<name> in a git worktree, so that worktrees can run
+# my_project in the main checkout, a distinct name in a git worktree, so that worktrees can run
 # `make setup` and `make check` at the same time (scripts/db-name.sh).
 DB_NAME := $(shell bash scripts/db-name.sh)
+ifeq ($(strip $(DB_NAME)),)
+$(error Could not determine this checkout's database name)
+endif
 LOCAL_POSTGRES := postgresql://my_project:my_project@localhost:5434
 # pytest's throwaway database (emptied by the tests). The CI sets its own.
-TEST_DATABASE_URL ?= $(LOCAL_POSTGRES)/$(DB_NAME)_test
+TEST_DATABASE_URL ?= $(LOCAL_POSTGRES)/$(DB_NAME)-test
 STEPS := bash scripts/steps.sh
 
 BACKEND_STEPS := \
@@ -106,26 +109,8 @@ migrate: ## Apply pending SQL migrations to the local database
 	@$(MAKE) db-up
 	@cd backend && uv run my-project migrate
 
-# Every checkout shares the containers. Two checkouts that start them at the same moment race to
-# create them: the one that loses tries once more and finds them running. Then this checkout's
-# databases, $(DB_NAME) and $(DB_NAME)_test; a git worktree also gets its own DATABASE_URL in
-# backend/.env (git-ignored), unless that file already sets one, for the app and the CLI.
 db-up: ## Start the local PostgreSQL (docker compose) and create this checkout's databases
-	@docker compose up -d --wait postgres \
-		|| docker compose up -d --wait postgres
-	@for db in $(DB_NAME) $(DB_NAME)_test; do \
-		docker compose exec -T postgres psql -U my_project -d my_project -tAc \
-			"SELECT 1 FROM pg_database WHERE datname = '$$db'" | grep -q 1 \
-			|| docker compose exec -T postgres createdb -U my_project "$$db"; \
-	done
-ifneq ($(DB_NAME),my_project)
-	@if ! grep -qsE '^(MY_PROJECT_)?DATABASE_URL=' backend/.env; then \
-		{ if [ -s backend/.env ]; then echo; fi; \
-		  echo "# This git worktree's own database (make db-up, scripts/db-name.sh)."; \
-		  echo "MY_PROJECT_DATABASE_URL=$(LOCAL_POSTGRES)/$(DB_NAME)"; } >> backend/.env; \
-		echo "backend/.env: MY_PROJECT_DATABASE_URL now points at $(DB_NAME), this worktree's database."; \
-	fi
-endif
+	@bash scripts/db-up.sh "$(DB_NAME)" "$(LOCAL_POSTGRES)"
 
 db-down: ## Stop the local PostgreSQL for every checkout (the data stays in a Docker volume)
 	@docker compose stop postgres

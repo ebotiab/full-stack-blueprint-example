@@ -1,10 +1,11 @@
 # Changes here will be overwritten by Copier; do not edit by hand. Update with `copier update`.
-_commit: v0.10.0
+_commit: v0.11.0
 _src_path: gh:ebotiab/full-stack-blueprint
 agent: pydantic_ai
 api_deploy: render
 api_public_url: https://full-stack-blueprint-example-api.onrender.com
 auth: sessions
+commit_style: gitmoji
 description: A FastAPI API with a React visor.
 email: none
 env_prefix: MY_PROJECT_
