@@ -224,6 +224,8 @@ async def test_gateway_model_pins_us_route_and_disables_transport_retries(
         model = demo_chat.get_chat_model()
         async with model:
             assert model.model_name == "openai/gpt-oss-20b"
+            assert model.settings is not None
+            assert model.settings.get("extra_headers") == {"Cache-Control": "no-store"}
             assert model.provider is not None
             assert (
                 str(model.provider.base_url)

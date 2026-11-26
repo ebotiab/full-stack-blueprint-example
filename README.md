@@ -5,21 +5,19 @@
 **[Open the live demo](https://full-stack-blueprint-example.vercel.app)** ·
 **[Public API documentation](https://full-stack-blueprint-example.vercel.app/docs)**
 
-Click **Try the demo** to sign in with the shared, non-admin visitor account
-(`visitor@example.com` / `Explore-the-blueprint!`). No Vercel account or invitation is needed.
-The demo uses real session cookies and reads fictitious messages from PostgreSQL. Refresh to
-check that your session persists; **Sign out** ends only your own session.
+Choose **Try the demo** to sign in as a visitor and read four fictional messages from
+PostgreSQL. The free API can take a minute to wake up. Refresh to check your session or
+choose **Sign out** to end it.
 
-The **Pydantic AI chat** below the messages is prepared but **not activated yet**: a dedicated
-free Logfire AI Gateway route still needs verification. Once activated, choose **Read the stored
-messages and summarize them**, send it, then ask a short follow-up. **Inside this response** shows
-real execution metadata; [how observability works](https://full-stack-blueprint-example.vercel.app/#observability)
-explains the journey. Visitor conversations are never published automatically.
+**The Pydantic AI chat is inactive.** Its dedicated free inference route still needs verification.
+Once enabled, choose **Read the stored messages and summarize them**, send it, then ask a
+follow-up. Open **Inside this response** for the tool calls, tokens, timing and reported cost.
+You can [read how the chat works](https://full-stack-blueprint-example.vercel.app/#observability)
+before signing in.
 
-Account changes remain disabled. Chat limits are five attempts per session, 20 per UTC day and
-100 per UTC month shared by everyone; failed attempts count. Only the previous exchange is kept
-for 30 minutes. Render's free API sleeps after inactivity: allow about a minute and use **Retry
-connection** if needed. Sign-in is rate-limited; retry after a minute when busy.
+Visitors have five attempts per session and share 20 per UTC day and 100 per UTC month.
+Failed runs count. Follow-ups use the previous exchange for up to 30 minutes.
+Visitor conversations are never shared automatically.
 
 A FastAPI API with a React visor.
 
