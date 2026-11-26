@@ -1,5 +1,19 @@
 # My Project
 
+## Live demo
+
+**[Open the live demo](https://full-stack-blueprint-example.vercel.app)** ·
+**[Public API documentation](https://full-stack-blueprint-example.vercel.app/docs)**
+
+Click **Try the demo** to sign in with the shared, non-admin visitor account
+(`visitor@example.com` / `Explore-the-blueprint!`). No Vercel account or invitation is needed.
+The demo uses real session cookies and reads fictitious messages from PostgreSQL. Refresh to
+check that your session persists; **Sign out** ends only your own session.
+
+This is a **read-only** demo: account changes and the AI agent are disabled. On Render's free
+plan, the API sleeps after inactivity; allow about a minute for the first connection and use
+**Retry connection** if needed. Sign-in is rate-limited; retry after a minute when busy.
+
 A FastAPI API with a React visor.
 
 - **API**: FastAPI on Python 3.14, PostgreSQL through asyncpg with plain SQL migrations, traces in Logfire.
