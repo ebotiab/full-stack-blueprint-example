@@ -33,6 +33,7 @@ export default defineConfig({
   reporter: process.env.CI ? [['github'], ['list']] : 'list',
   use: { baseURL, trace: 'retain-on-failure', screenshot: 'only-on-failure' },
   webServer: {
+    env: { VITE_PUBLIC_DEMO: 'true' },
     command: `npm run dev -- --port ${port} --strictPort --host 127.0.0.1`,
     url: baseURL,
     reuseExistingServer: false,

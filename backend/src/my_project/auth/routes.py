@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 
 from ..api.deps import ConnectionDep
+from ..settings import get_settings
 from . import limits, passwords, sessions, users
 from .deps import (
     CurrentSession,
@@ -44,6 +45,12 @@ async def login(
 ) -> User:
     """Check email and password and start a session, held in an HttpOnly cookie."""
     check_same_origin(request)
+    if get_settings().demo_enabled:
+        from ..demo import EMAIL
+
+        # A single public account keeps arbitrary sign-in names from growing the attempt table.
+        if users.normalize_email(credentials.email) != EMAIL:
+            raise unauthorized("Wrong email or password.")
     await _take_attempt(conn, credentials.email)
     user = await users.authenticate(conn, credentials.email, credentials.password)
     if user is None:

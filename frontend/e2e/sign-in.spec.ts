@@ -48,3 +48,18 @@ test('signs out', async ({ page }) => {
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page.getByRole('form', { name: 'Sign in' })).toBeVisible()
 })
+
+test('visitor enters with the public account and sees the demo limitations', async ({ page }) => {
+  await answerApi(page, { status: 401, json: { detail: 'Not signed in.' } })
+  let sent: unknown
+  await page.route('**/api/auth/login', (route) => {
+    sent = route.request().postDataJSON()
+    return route.fulfill({ json: { ...user, email: 'visitor@example.com' } })
+  })
+  await page.goto('/')
+  await expect(page.getByText(/free API may take about a minute/)).toBeVisible()
+  await page.getByRole('button', { name: 'Try the demo' }).click()
+  expect(sent).toEqual({ email: 'visitor@example.com', password: 'Explore-the-blueprint!' })
+  await expect(page.getByRole('list', { name: 'Messages' })).toBeVisible()
+  await expect(page.getByText(/AI agent is not enabled/)).toBeVisible()
+})

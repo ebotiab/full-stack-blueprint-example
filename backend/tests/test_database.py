@@ -56,4 +56,5 @@ async def test_messages_come_from_the_database() -> None:
     ):
         response = await http.get("/api/messages")
     assert response.status_code == 200
-    assert [m["text"] for m in response.json()] == ["Hello from PostgreSQL"]
+    assert [m["text"] for m in response.json()][-1] == "Hello from PostgreSQL"
+    assert len(response.json()) == 4
