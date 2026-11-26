@@ -3,7 +3,7 @@
 # service in sync with this file. Manual steps (database, secrets) are in the README, "Deploy".
 services:
   - type: web
-    name: my-project-api
+    name: full-stack-blueprint-example-api
     runtime: docker
     # Only changes under backend/ redeploy the API.
     rootDir: backend
@@ -19,10 +19,15 @@ services:
         sync: false
       - key: MY_PROJECT_ENVIRONMENT
         value: production
+      - key: MY_PROJECT_DEMO_ENABLED
+        value: "true"
+      - key: MY_PROJECT_DB_POOL_MAX_SIZE
+        value: "3"
+      - key: MY_PROJECT_AGENT_TRACE_CONTENT
+        value: "false"
+      - key: MY_PROJECT_ORIGIN_SECRET
+        sync: false
       # Logfire write token of the project. Without it the API runs but sends no traces.
       - key: LOGFIRE_TOKEN
         sync: false
-      # The agent's model key (or the variable of the provider in MY_PROJECT_AI_MODEL). Without it,
-      # /api/agent answers 503.
-      - key: ANTHROPIC_API_KEY
-        sync: false
+      # The public read-only demo does not expose the agent or require a model-provider key.

@@ -22,7 +22,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://my-project-api.onrender.com/api/:path*"
+      "destination": "https://full-stack-blueprint-example-api.onrender.com/api/:path*"
     },
     { "source": "/((?!assets/|_vercel/).*)", "destination": "/index.html" }
   ],
