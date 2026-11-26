@@ -10,9 +10,16 @@ Click **Try the demo** to sign in with the shared, non-admin visitor account
 The demo uses real session cookies and reads fictitious messages from PostgreSQL. Refresh to
 check that your session persists; **Sign out** ends only your own session.
 
-This is a **read-only** demo: account changes and the AI agent are disabled. On Render's free
-plan, the API sleeps after inactivity; allow about a minute for the first connection and use
-**Retry connection** if needed. Sign-in is rate-limited; retry after a minute when busy.
+The **Pydantic AI chat** below the messages is prepared but **not activated yet**: a dedicated
+free Logfire AI Gateway route still needs verification. Once activated, choose **Read the stored
+messages and summarize them**, send it, then ask a short follow-up. **Inside this response** shows
+real execution metadata; [how observability works](https://full-stack-blueprint-example.vercel.app/#observability)
+explains the journey. Visitor conversations are never published automatically.
+
+Account changes remain disabled. Chat limits are five attempts per session, 20 per UTC day and
+100 per UTC month shared by everyone; failed attempts count. Only the previous exchange is kept
+for 30 minutes. Render's free API sleeps after inactivity: allow about a minute and use **Retry
+connection** if needed. Sign-in is rate-limited; retry after a minute when busy.
 
 A FastAPI API with a React visor.
 

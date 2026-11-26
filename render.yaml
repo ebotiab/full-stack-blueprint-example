@@ -30,4 +30,11 @@ services:
       # Logfire write token of the project. Without it the API runs but sends no traces.
       - key: LOGFIRE_TOKEN
         sync: false
-      # The public read-only demo does not expose the agent or require a model-provider key.
+      # Remains off until the free route, project telemetry and credentials are verified.
+      # Runtime enablement is separate so a deploy cannot silently authorize model charges.
+      - key: MY_PROJECT_DEMO_CHAT_ENABLED
+        sync: false
+      - key: MY_PROJECT_DEMO_GATEWAY_ROUTE
+        sync: false
+      - key: PYDANTIC_AI_GATEWAY_API_KEY
+        sync: false

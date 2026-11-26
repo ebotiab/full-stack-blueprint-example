@@ -62,6 +62,47 @@ try {
   assert.equal(await list.innerText(), originalMessages, 'Data and the session survive a reload')
   assert.deepEqual(await (await context.request.get(`${demoUrl}/api/messages`)).json(), data)
 
+  let chatExecution = null
+  if (process.env.VERIFY_CHAT === '1') {
+    // Deliberately costs two of the shared reservations. Use only after free-route verification.
+    await page.getByRole('button', { name: 'Read the stored messages and summarize them.' }).click()
+    const firstReply = page.waitForResponse((response) => response.url().endsWith('/api/demo-chat') && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'Send', exact: true }).click()
+    const first = await firstReply
+    assert.equal(first.status(), 200)
+    const answer = await first.json()
+    assert.ok(answer.answer.length > 0)
+    assert.equal(answer.execution.tool_used, true)
+    assert.ok(answer.execution.rows_read > 0)
+    assert.ok(answer.execution.input_tokens > 0 && answer.execution.output_tokens > 0)
+    assert.match(answer.execution.trace_id, /^[a-f0-9]{32}$/)
+    await page.getByLabel('Your message').fill('Summarize your previous answer in one sentence.')
+    const followReply = page.waitForResponse((response) => response.url().endsWith('/api/demo-chat') && response.request().method() === 'POST')
+    await page.getByRole('button', { name: 'Send', exact: true }).click()
+    assert.equal((await followReply).status(), 200)
+    await page.getByText('Inside this response').first().click()
+    await page.getByText(/PostgreSQL tool/).first().waitFor()
+    chatExecution = answer.execution
+    // Control errors before model admission; these tests use no additional inference.
+    assert.equal((await context.request.post(`${demoUrl}/api/demo-chat`, { data: { message: 'csrf' } })).status(), 403)
+    assert.equal((await context.request.post(`${demoUrl}/api/demo-chat`, { headers: { 'Sec-Fetch-Site': 'same-origin' }, data: { message: 'x'.repeat(601) } })).status(), 422)
+    assert.equal((await context.request.post(`${demoUrl}/api/demo-chat`, { headers: { 'Sec-Fetch-Site': 'same-origin' }, data: { message: 'id probe', session_id: 'other-session' } })).status(), 422)
+
+    const other = await browser.newContext()
+    const otherPage = await other.newPage()
+    await otherPage.goto(demoUrl)
+    await otherPage.getByRole('button', { name: 'Try the demo', exact: true }).click()
+    await otherPage.getByRole('heading', { name: 'A small Pydantic AI chat' }).waitFor()
+    assert.equal(await otherPage.getByRole('list', { name: 'Conversation' }).getByRole('listitem').count(), 0)
+    assert.equal((await (await other.request.get(`${demoUrl}/api/demo-chat`)).json()).remaining, 5)
+    await otherPage.getByRole('button', { name: 'Sign out', exact: true }).click()
+    await other.close()
+  } else {
+    const chatStatus = await context.request.get(`${demoUrl}/api/demo-chat`)
+    assert.equal(chatStatus.status(), 200)
+    assert.equal((await chatStatus.json()).available, false, 'Omit VERIFY_CHAT only for an explicitly inactive chat')
+  }
+
   const anonymous = await browser.newContext()
   assert.equal((await anonymous.request.get(`${demoUrl}/api/messages`)).status(), 401)
   await anonymous.close()
@@ -86,7 +127,7 @@ try {
   assert.ok((await schema.json()).paths['/api/messages'])
   assert.deepEqual(pageErrors, [], 'No browser runtime errors')
   assert.deepEqual(serverErrors, [], 'No server errors during the visitor journey')
-  console.log(JSON.stringify({ demoUrl, docsUrl, apiCommit: serving.commit, messages: data.length, result: 'passed' }))
+  console.log(JSON.stringify({ demoUrl, docsUrl, apiCommit: serving.commit, messages: data.length, chatExecution, result: 'passed' }))
 } finally {
   await context.close()
   await browser.close()

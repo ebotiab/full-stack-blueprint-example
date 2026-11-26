@@ -5,6 +5,9 @@ import { expect, test, type Page } from '@playwright/test'
 const user = { id: 1, email: 'ada@example.com', is_admin: false }
 
 async function answerApi(page: Page, me: { status: number; json: object }) {
+  await page.route('**/api/demo-chat', (route) =>
+    route.fulfill({ json: { available: false, remaining: 5, detail: 'Chat is not activated.' } }),
+  )
   await page.route('**/api/auth/me', (route) => route.fulfill(me))
   await page.route('**/api/messages', (route) =>
     route.fulfill({ json: [{ id: 1, text: 'Hello', created_at: '2026-11-18T10:05:00Z' }] }),
@@ -61,7 +64,8 @@ test('visitor enters with the public account and sees the demo limitations', asy
   await page.getByRole('button', { name: 'Try the demo' }).click()
   expect(sent).toEqual({ email: 'visitor@example.com', password: 'Explore-the-blueprint!' })
   await expect(page.getByRole('list', { name: 'Messages' })).toBeVisible()
-  await expect(page.getByText(/AI agent is not enabled/)).toBeVisible()
+  await expect(page.getByText(/Other visitor actions remain read-only/)).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('Chat is not activated.')
 })
 
 test('retries the connection after the API failed to wake up', async ({ page }) => {

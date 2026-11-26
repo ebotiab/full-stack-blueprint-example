@@ -32,8 +32,8 @@ async def initialize(conn: asyncpg.Connection) -> None:
 async def read_only(request: Request, call_next: RequestResponseEndpoint) -> Response:
     """Limit the entire public deployment to reading data and individual session sign-in/out.
 
-    The shared visitor must never change its password or end other visitors' sessions. The agent
-    is deliberately unavailable on this read-only deployment; it has no model credential.
+    The shared visitor must never change its password or end other visitors' sessions.
+    Only the separately authenticated, quota-limited chat may call a read-only agent tool.
     """
     if (
         get_settings().demo_enabled
@@ -42,6 +42,7 @@ async def read_only(request: Request, call_next: RequestResponseEndpoint) -> Res
         not in {
             "/api/auth/login",
             "/api/auth/logout",
+            "/api/demo-chat",
         }
     ):
         return JSONResponse({"detail": "This public demo is read-only."}, 403)

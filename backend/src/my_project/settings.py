@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     db_pool_max_size: int = 8
     #: Public read-only example with a shared non-admin visitor account. Never use with private data.
     demo_enabled: bool = False
+    #: Activate only after verifying a dedicated free BYOK route, telemetry and its limits.
+    demo_chat_enabled: bool = False
+    #: Exact project-specific Gateway Connect route; never a URL or a fallback endpoint.
+    demo_gateway_route: str = Field(default="", pattern=r"^[a-z0-9-]*$")
     #: Apply pending migrations when the API starts. On by default where the platform has no
     #: pre-deploy step (this target).
     migrate_on_start: bool = True
