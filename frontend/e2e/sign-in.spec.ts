@@ -63,3 +63,15 @@ test('visitor enters with the public account and sees the demo limitations', asy
   await expect(page.getByRole('list', { name: 'Messages' })).toBeVisible()
   await expect(page.getByText(/AI agent is not enabled/)).toBeVisible()
 })
+
+test('retries the connection after the API failed to wake up', async ({ page }) => {
+  let unavailable = true
+  await page.route('**/api/auth/me', (route) => {
+    return route.fulfill({ status: unavailable ? 503 : 401, json: { detail: 'Try again.' } })
+  })
+  await page.goto('/')
+  await expect(page.getByRole('button', { name: 'Retry connection' })).toBeVisible()
+  unavailable = false
+  await page.getByRole('button', { name: 'Retry connection' }).click()
+  await expect(page.getByRole('button', { name: 'Try the demo' })).toBeVisible()
+})

@@ -21,6 +21,14 @@
   ],
   "rewrites": [
     {
+      "source": "/docs",
+      "destination": "https://full-stack-blueprint-example-api.onrender.com/docs"
+    },
+    {
+      "source": "/openapi.json",
+      "destination": "https://full-stack-blueprint-example-api.onrender.com/openapi.json"
+    },
+    {
       "source": "/api/:path*",
       "destination": "https://full-stack-blueprint-example-api.onrender.com/api/:path*"
     },
